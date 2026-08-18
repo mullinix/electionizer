@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="sage">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>electionizer · static</title>
+  <script>
+    (function () {
+      var KEY = "electionizer-theme";
+      var ok = {
+        sage: 1, midnight: 1, amber: 1, bipartisan: 1,
+        violet: 1, rose: 1, ice: 1, phosphor: 1
+      };
+      var t = null;
+      try { t = localStorage.getItem(KEY); } catch (e) {}
+      if (!t || !ok[t]) {
+        var m = document.cookie.match(/(?:^|;\s*)electionizer-theme=([^;]+)/);
+        t = m ? decodeURIComponent(m[1]) : "sage";
+      }
+      if (!ok[t]) t = "sage";
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./app.css">
+  <script src="./theme.js" defer></script>
+</head>
+<body>
+  <div class="hex-grid" aria-hidden="true"></div>
+  <header class="site-header">
+    <div class="brand-block">
+      <span class="site-label">// ballot archive</span>
+      <a href="./" class="brand" id="nav-home">electionizer</a>
+    </div>
+    <span class="tagline">ZIP → ballot report</span>
+    <div class="header-status" aria-hidden="true">
+      <span>SYS <span class="val" id="sys-status">LOADING</span><span class="cursor">█</span></span>
+      <span>MODE <span class="val" id="mode-badge">WASM</span></span>
+    </div>
+    <nav class="nav">
+      <a href="#settings" id="nav-settings">Settings</a>
+    </nav>
+  </header>
+  <main class="container">
+    <section class="hero" id="home-view">
+      <p class="section-label" style="margin-top:0">// query //</p>
+      <h1>Who’s on your ballot?</h1>
+      <p id="home-lede">
+        Enter your ZIP code for a summary of candidates and ballot measures in your area.
+      </p>
+      <p class="warn-banner" id="demo-warning" hidden>
+        Using FEC <code>DEMO_KEY</code> (low rate limit).
+        <a href="#settings" id="demo-settings-link">Add your API key in Settings</a>
+        · <a href="https://api.open.fec.gov/developers/" rel="noopener noreferrer" target="_blank">Get a key</a>
+      </p>
+      <form id="zip-form" class="zip-form">
+        <label for="zip-input">ZIP code</label>
+        <div class="row">
+          <input id="zip-input" name="zip" type="text" inputmode="numeric"
+                 pattern="[0-9]{5}(-[0-9]{4})?" maxlength="10" placeholder="90210"
+                 autocomplete="postal-code" required autofocus>
+          <button type="submit">Get report</button>
+        </div>
+        <details class="street-details" id="street-details">
+          <summary class="meta">Street / precinct <span class="muted">(optional — Civic + official sample ballot)</span></summary>
+          <label for="street-input" class="sr-only">Street address</label>
+          <input id="street-input" name="street" type="text" maxlength="120"
+                 placeholder="123 Main St"
+                 autocomplete="off"
+                 data-lpignore="true"
+                 data-1p-ignore="true"
+                 data-form-type="other"
+                 style="width:100%; max-width:28rem; margin-top:0.35rem">
+          <div class="row" style="max-width:28rem; gap:0.5rem; margin-top:0.5rem; flex-wrap:wrap;">
+            <label for="precinct-input" class="meta" style="flex:1; min-width:8rem">Precinct
+              <input id="precinct-input" name="precinct" type="text" maxlength="8"
+                     placeholder="201" inputmode="numeric"
+                     autocomplete="off" style="width:100%; margin-top:0.2rem">
+            </label>
+            <label for="voter-party-input" class="meta" style="flex:1; min-width:10rem">Primary party
+              <select id="voter-party-input" name="voter_party" style="width:100%; margin-top:0.2rem">
+                <option value="">—</option>
+                <option value="Rep">Republican</option>
+                <option value="Dem">Democratic</option>
+                <option value="Non">Nonpartisan sample</option>
+              </select>
+            </label>
+          </div>
+          <p class="meta muted" style="margin-top:0.35rem">Florida closed primary: your party ballot + every nonpartisan race. Stored in this browser only.</p>
+         </details>
+       </form>
+       <details class="voter-profile street-details" id="voter-profile">
+         <summary class="meta" id="voter-profile-summary">Voter profile <span class="muted">(optional · 1–5 · this browser)</span></summary>
+          <p class="meta muted" style="margin-top:0.4rem">How much do you agree with each? Used to remap verdict scores into a personal fit. 1 = strongly disagree, 5 = strongly agree; some rows use custom poles. Not sent to any server except inside your optional AI prompt.</p>
+         <div class="likert-legend meta muted" aria-hidden="true">
+           <span>1 disagree</span>
+           <span class="fit-legend"></span>
+           <span>5 agree</span>
+         </div>
+         <div id="voter-profile-axes"></div>
+         <p class="row" style="margin-top:0.6rem; gap:0.5rem; flex-wrap:wrap;">
+           <button type="button" class="secondary" id="voter-profile-clear">Clear profile</button>
+           <span class="meta muted" id="voter-profile-status"></span>
+         </p>
+       </details>
+       <div id="ballot-job" class="card job-status" hidden role="status" aria-live="polite">
+        <div class="bar-wrap" aria-hidden="true">
+          <div class="bar" id="ballot-job-bar" style="width: 0%"></div>
+        </div>
+        <p class="pct" id="ballot-job-pct"><strong>0%</strong> · starting…</p>
+        <p class="msg" id="ballot-job-msg">Building ballot…</p>
+      </div>
+      <p class="meta muted" id="status-line">Loading WASM…</p>
+      <p class="meta muted" id="last-ballot-offer" hidden></p>
+    </section>
+
+    <section class="ballot" id="ballot-view" hidden>
+      <p class="crumb">
+        <a href="#" id="back-home">← New ZIP</a>
+        <span class="crumb-sep"> · </span>
+        <a href="#" id="nav-scorecard">Scorecard</a>
+      </p>
+      <div id="score-progress"></div>
+      <div id="ballot-root"></div>
+    </section>
+
+    <section id="scorecard-view" hidden>
+      <p class="crumb"><a href="#" id="back-scorecard-ballot">← Ballot</a></p>
+      <div id="scorecard-progress"></div>
+      <div id="scorecard-host"></div>
+    </section>
+
+    <section id="verdict-view" hidden>
+      <div id="verdict-host"></div>
+    </section>
+
+    <section id="detail-view" hidden>
+      <div id="detail-host"></div>
+    </section>
+
+    <section class="settings" id="settings-view" hidden>
+      <p class="crumb"><a href="#" id="back-from-settings">← Home</a></p>
+      <h1>Settings</h1>
+      <p class="meta muted">Preferences stored in this browser only (localStorage).</p>
+
+      <p class="section-label">// Appearance //</p>
+      <section class="card">
+        <h2>Theme</h2>
+        <p class="hint">Applies instantly on this device.</p>
+        <div class="theme-grid" data-theme-picker role="radiogroup" aria-label="Color theme">
+          <button type="button" class="theme-swatch" role="radio" data-theme-id="sage" aria-checked="false">
+            <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+            <span class="swatch-name">Sage</span>
+            <span class="swatch-desc">Muted CRT teal archive</span>
+          </button>
+          <button type="button" class="theme-swatch" role="radio" data-theme-id="midnight" aria-checked="false">
+            <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+            <span class="swatch-name">Midnight</span>
+            <span class="swatch-desc">Deep navy tactical HUD</span>
+          </button>
+          <button type="button" class="theme-swatch" role="radio" data-theme-id="amber" aria-checked="false">
+            <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+            <span class="swatch-name">Amber</span>
+            <span class="swatch-desc">Warm terminal phosphor</span>
+          </button>
+          <button type="button" class="theme-swatch" role="radio" data-theme-id="bipartisan" aria-checked="false">
+            <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+            <span class="swatch-name">Bipartisan</span>
+            <span class="swatch-desc">Neutral chrome, party accents</span>
+          </button>
+          <button type="button" class="theme-swatch" role="radio" data-theme-id="violet" aria-checked="false">
+            <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+            <span class="swatch-name">Violet</span>
+            <span class="swatch-desc">Deep purple cyber HUD</span>
+          </button>
+          <button type="button" class="theme-swatch" role="radio" data-theme-id="rose" aria-checked="false">
+            <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+            <span class="swatch-name">Rose</span>
+            <span class="swatch-desc">Wine phosphor archive</span>
+          </button>
+          <button type="button" class="theme-swatch" role="radio" data-theme-id="ice" aria-checked="false">
+            <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+            <span class="swatch-name">Ice</span>
+            <span class="swatch-desc">Cool slate + cyan</span>
+          </button>
+          <button type="button" class="theme-swatch" role="radio" data-theme-id="phosphor" aria-checked="false">
+            <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+            <span class="swatch-name">Phosphor</span>
+            <span class="swatch-desc">Classic green CRT</span>
+          </button>
+        </div>
+      </section>
+
+      <p class="section-label">// Data mode //</p>
+      <form id="settings-form" class="card">
+        <h2>Provider</h2>
+        <label>
+          <input type="radio" name="mode" value="live" id="mode-live">
+          Live federal (Zippo + TIGERweb/FCC + OpenFEC)
+        </label>
+        <br>
+        <label>
+          <input type="radio" name="mode" value="fixture" id="mode-fixture">
+          Fixture offline demo (any ZIP → 90210 sample)
+        </label>
+
+        <p class="section-label">// OpenFEC API key //</p>
+        <p class="meta">Stored only in this browser. <code>DEMO_KEY</code> is rate-limited (~40/hr).</p>
+        <label for="fec-key">FEC API key</label>
+        <input id="fec-key" type="password" autocomplete="off" placeholder="DEMO_KEY"
+               spellcheck="false" style="width:100%; max-width:28rem; margin:0.5rem 0;">
+        <p class="meta muted">
+          Get a key: <a href="https://api.open.fec.gov/developers/" target="_blank" rel="noopener">api.open.fec.gov</a>
+        </p>
+
+        <p class="section-label">// Open States API key //</p>
+        <p class="meta">Optional. Adds state legislature <strong>incumbents only</strong>
+          (not a full ballot — no challengers) via <code>people.geo</code> where FL/AZ scrapers
+          don’t apply, plus roll-calls on candidate detail. Free tier 10 req/min.</p>
+        <label for="os-key">Open States API key</label>
+        <input id="os-key" type="password" autocomplete="off" placeholder="(optional)"
+               spellcheck="false" style="width:100%; max-width:28rem; margin:0.5rem 0;">
+        <p class="meta muted">
+          Get a key: <a href="https://openstates.org/accounts/profile/" target="_blank" rel="noopener">openstates.org</a>
+        </p>
+
+        <p class="section-label">// FollowTheMoney API key //</p>
+        <p class="meta">Optional. State campaign-finance totals for <strong>non-FL</strong> candidates
+          (OpenSecrets / FollowTheMoney.org). Free key via a myFollowTheMoney account.
+          Data published through 2024; needs Wisp or CORS for the API host.</p>
+        <label for="ftm-key">FollowTheMoney API key</label>
+        <input id="ftm-key" type="password" autocomplete="off" placeholder="(optional)"
+               spellcheck="false" style="width:100%; max-width:28rem; margin:0.5rem 0;">
+        <p class="meta muted">
+          Register: <a href="https://www.followthemoney.org/account/sign-up/" target="_blank" rel="noopener">followthemoney.org</a>
+          · <a href="https://www.followthemoney.org/our-data/apis/" target="_blank" rel="noopener">API docs</a>
+        </p>
+
+        <p class="section-label">// CourtListener token //</p>
+        <p class="meta">Optional. Improves rate limits for judicial <strong>Decisions</strong> (opinions)
+          and law-practice history via Free Law Project. Anonymous access often works at low QPS.
+          Never required for legislators.</p>
+        <label for="cl-token">CourtListener API token</label>
+        <input id="cl-token" type="password" autocomplete="off" placeholder="(optional)"
+               spellcheck="false" style="width:100%; max-width:28rem; margin:0.5rem 0;">
+        <p class="meta muted">
+          Register: <a href="https://www.courtlistener.com/sign-in/register/" target="_blank" rel="noopener">courtlistener.com</a>
+          · <a href="https://www.courtlistener.com/help/api/" target="_blank" rel="noopener">API docs</a>
+        </p>
+
+        <p class="section-label">// Google Civic API key //</p>
+        <p class="meta">Optional. Multi-state <strong>full ballot contests</strong> (candidates + measures)
+          via the Voting Information Project when a feed is live — often only ~2–4 weeks before an election.
+          Used for AZ and other states without rich official filings (skipped when FL/NC/MD filings already load).
+          Home form optional <strong>street address</strong> improves precinct match (else ZIP centroid).
+          Free GCP key; ~25k queries/day.</p>
+        <label for="civic-key">Google Civic API key</label>
+        <input id="civic-key" type="password" autocomplete="off" placeholder="(optional)"
+               spellcheck="false" style="width:100%; max-width:28rem; margin:0.5rem 0;">
+        <p class="meta muted">
+          Enable API + create key:
+          <a href="https://console.cloud.google.com/apis/library/civicinfo.googleapis.com" target="_blank" rel="noopener">Civic Information API</a>
+          · <a href="https://developers.google.com/civic-information/docs/using_api" target="_blank" rel="noopener">docs</a>
+        </p>
+
+        <p class="section-label">// AI verdict (optional) //</p>
+        <p class="meta">After a ballot loads, Grok scores every candidate and measure (early pass:
+          identity + live web/X search). The list sorts by personal fit; <strong>Scorecard</strong>
+          tabulates those scores by party for each office. Click a name for the full verdict.
+          Home <strong>voter profile</strong> (1–5 Likert) remaps scores (dislike 80 → 20) on a
+          blue→gold heatmap. Key stays in this browser. Needs Wisp. Cached until you hit
+          <strong>refresh data</strong> / <strong>refresh score</strong> on the ballot, a race, or a name. L6 contrast notes
+          under Scrutiny still run separately.</p>
+        <label for="llm-provider">Provider</label>
+        <select id="llm-provider" style="width:100%; max-width:28rem; margin:0.5rem 0;">
+          <option value="xai">xAI Grok</option>
+          <option value="openai">OpenAI</option>
+        </select>
+        <label for="llm-model">Model</label>
+        <select id="llm-model" style="width:100%; max-width:28rem; margin:0.5rem 0;">
+          <option value="">Default (grok-4.6 / gpt-4o-mini)</option>
+          <option value="grok-4-fast">grok-4-fast</option>
+          <option value="grok-4.6">grok-4.6</option>
+          <option value="gpt-4o-mini">gpt-4o-mini</option>
+        </select>
+        <label for="llm-key">LLM API key</label>
+        <input id="llm-key" type="password" autocomplete="off" placeholder="(optional)"
+               spellcheck="false" style="width:100%; max-width:28rem; margin:0.5rem 0;">
+        <p class="meta muted">
+          Keys:
+          <a href="https://console.x.ai/" target="_blank" rel="noopener">console.x.ai</a>
+          · <a href="https://platform.openai.com/api-keys" target="_blank" rel="noopener">platform.openai.com</a>
+        </p>
+        <label for="score-concurrency">Score parallelism</label>
+        <input id="score-concurrency" type="range" min="1" max="8" step="1" value="3"
+               style="width:100%; max-width:28rem; margin:0.5rem 0;">
+        <p class="meta muted" id="score-concurrency-val">3 at a time. 1 = sequential. Local Wisp handles more than the public instance.</p>
+
+        <p class="section-label">// Your precinct (Brevard / FL primary) //</p>
+        <p class="meta">Used for the official VoteBrevard sample-ballot link. Not sent to any server.
+          ZIP centroid is not precinct-accurate for county/school/muni races.</p>
+        <div class="row" style="max-width:28rem; gap:0.5rem; flex-wrap:wrap;">
+          <label for="settings-precinct">Precinct
+            <input id="settings-precinct" type="text" maxlength="8" placeholder="201"
+                   inputmode="numeric" autocomplete="off" style="width:100%; margin-top:0.2rem">
+          </label>
+          <label for="settings-voter-party">Primary party
+            <select id="settings-voter-party" style="width:100%; margin-top:0.2rem">
+              <option value="">—</option>
+              <option value="Rep">Republican</option>
+              <option value="Dem">Democratic</option>
+              <option value="Non">Nonpartisan sample</option>
+            </select>
+          </label>
+        </div>
+
+        <p class="section-label">// Cycle //</p>
+        <label for="cycle-input">Election cycle</label>
+        <input id="cycle-input" type="number" min="2000" max="2100" step="2"
+               style="width:6rem; margin:0.5rem 0;">
+
+        <p class="section-label">// Wisp proxy (libcurl.js) //</p>
+        <p class="meta">Used for AZ/FL chamber HTML, FL DOS extract, and FL amendment detail.
+          Browser loads
+          <a href="https://github.com/ading2210/libcurl.js" target="_blank" rel="noopener">libcurl.js</a>
+          and tunnels HTTPS (E2E TLS) through
+          <a href="https://github.com/MercuryWorkshop/wisp-protocol" target="_blank" rel="noopener">Wisp</a>.
+          Default: <code>wss://wisp.mercurywork.shop/</code> — <strong>public, shared, and rate-limited</strong>
+          (heavy FL/AZ use may stall or fail). For reliable local use: run
+          <code>./scripts/run-static.sh</code> then <strong>This origin</strong>
+          (Wisp on the same host as the static files). Clear the field and Save to disable Wisp.</p>
+        <label for="wisp-url">Wisp WebSocket URL</label>
+        <div class="row" style="max-width:36rem; gap:0.5rem; align-items:center; flex-wrap:wrap;">
+          <input id="wisp-url" type="url" autocomplete="off"
+                 placeholder="wss://wisp.mercurywork.shop/"
+                 spellcheck="false" style="flex:1; min-width:14rem; margin:0.5rem 0;">
+          <button type="button" id="wisp-use-default" class="secondary">Default</button>
+          <button type="button" id="wisp-use-origin" class="secondary">This origin</button>
+        </div>
+        <p class="meta muted" id="wisp-status"></p>
+
+        <p class="section-label">// CORS proxy (fallback) //</p>
+        <p class="meta">Optional fallback when Wisp is unset. Example:
+          <code>https://corsproxy.io/?</code></p>
+        <label for="cors-proxy">CORS proxy prefix</label>
+        <input id="cors-proxy" type="url" autocomplete="off" placeholder="(optional)"
+               spellcheck="false" style="width:100%; max-width:28rem; margin:0.5rem 0;">
+
+        <p class="section-label">// Florida DOS TSV (optional) //</p>
+        <p class="meta">Live DOS Candidate Tracking is fetched via Wisp/libcurl.js (same as the native app).
+          Upload or ship a TSV only as offline fallback. See <code>web/data/README.md</code>.</p>
+        <p class="meta muted" id="fl-dos-meta">No TSV stored.</p>
+        <label for="fl-dos-file">Upload TSV</label>
+        <input id="fl-dos-file" type="file" accept=".tsv,.txt,text/tab-separated-values,text/plain"
+               style="margin:0.5rem 0; display:block;">
+        <button type="button" id="fl-dos-clear" class="secondary">Clear stored TSV</button>
+
+        <p class="section-label">// Cached ballots &amp; responses //</p>
+        <p class="meta">Responses stay until you reload them (refresh data / score on the ballot, a race, or a name) or clear here.
+          This wipes IndexedDB (last ballot, FEC/DOS/chamber HTTP bodies, TreFin dumps, verdicts) and hides the home “Last ballot” reopen offer.
+          The next ZIP run fetches live again. Does <strong>not</strong> remove API keys, Wisp/CORS URLs, theme, mode, cycle, or FL DOS TSV upload.
+          Google Civic VIP still expires in 12h (their guideline).</p>
+        <button type="button" id="clear-ballot-cache" class="secondary">Clear ballot &amp; response cache</button>
+        <p class="meta muted" id="clear-cache-status"></p>
+
+        <p style="margin-top:1.25rem">
+          <button type="submit">Save</button>
+        </p>
+        <p class="meta muted" id="settings-status"></p>
+      </form>
+    </section>
+  </main>
+  <footer class="site-footer">
+    <p id="footer-note">// sources cited on detail · client-only WASM · IndexedDB cache</p>
+  </footer>
+  <script type="module" src="./app.js"></script>
+</body>
+</html>

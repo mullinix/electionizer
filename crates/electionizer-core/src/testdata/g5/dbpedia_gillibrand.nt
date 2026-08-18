@@ -1,0 +1,5 @@
+<http://dbpedia.org/resource/Kirsten_Gillibrand>	<http://dbpedia.org/ontology/birthDate>	"1966-12-09"^^<http://www.w3.org/2001/XMLSchema#date> .
+<http://dbpedia.org/resource/Kirsten_Gillibrand>	<http://dbpedia.org/property/spouse>	"Jonathan Gillibrand"@en .
+<http://dbpedia.org/resource/Kirsten_Gillibrand>	<http://dbpedia.org/ontology/almaMater>	<http://dbpedia.org/resource/Dartmouth_College> .
+<http://dbpedia.org/resource/Kirsten_Gillibrand>	<http://dbpedia.org/ontology/almaMater>	<http://dbpedia.org/resource/UCLA_School_of_Law> .
+<http://dbpedia.org/resource/Kirsten_Gillibrand>	<http://dbpedia.org/property/children>	"2"^^<http://www.w3.org/2001/XMLSchema#integer> .

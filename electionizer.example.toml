@@ -1,0 +1,23 @@
+# Copy to electionizer.toml and set your FEC API key.
+# Get a key: https://api.open.fec.gov/developers/
+# DEMO_KEY is rate-limited (~40 req/hour).
+
+provider = "live"
+db = "electionizer.db"
+bind = "127.0.0.1:3000"
+mode = "both"
+fixture_dir = "testdata"
+daemon_interval_secs = 3600
+refresh_hours = 24
+stage_delay_ms = 400
+cycle = 2026
+
+[fec]
+api_key = "DEMO_KEY"
+# Reuse FEC candidate lists for this many hours (avoids rate limits on rebuild)
+cache_ttl_hours = 24
+
+[openstates]
+# Free key: https://open.pluralpolicy.com/accounts/profile/
+# Enables state legislature roll-calls (FL, AZ, …) on candidate detail
+api_key = ""

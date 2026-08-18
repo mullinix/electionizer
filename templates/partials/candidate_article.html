@@ -1,0 +1,255 @@
+<article class="detail">
+  <p class="crumb">
+    {% if c.zip %}
+    <a href="/ballot/{{ c.zip }}">← Back to ballot</a>
+    {% else %}
+    <a href="/">← Home</a>
+    {% endif %}
+  </p>
+  <h1>{{ c.name }}</h1>
+  <p class="meta">{{ c.party }} · {{ c.office }} · {{ c.jurisdiction }}</p>
+  <p class="meta muted">{{ c.election_name }} · {{ c.election_date }}
+    {% if c.is_incumbent %} · Incumbent{% endif %}
+    {% if c.is_judge %} · Judicial{% endif %}
+    {% if c.external_id %} · FEC {{ c.external_id }}{% endif %}
+  </p>
+
+  <p class="section-label">// Profile //</p>
+  <section class="card">
+    <h2>Summary</h2>
+    <p>{{ c.summary or "No summary available yet." }}</p>
+  </section>
+
+  <section class="card">
+    <h2>Voting record</h2>
+    {% if votes %}
+    <p class="meta muted">Recent roll-call votes{% if votes_source %} ({{ votes_source }}){% endif %}{% if votes_url %} · <a href="{{ votes_url }}" rel="noopener noreferrer" target="_blank">member profile →</a>{% endif %}</p>
+    <table>
+      <thead><tr><th>Date</th><th>Question</th><th>Vote</th><th>Result</th></tr></thead>
+      <tbody>
+      {% for v in votes %}
+        <tr>
+          <td class="nowrap">{{ v.date }}</td>
+          <td><a href="{{ v.url }}" rel="noopener noreferrer" target="_blank">{{ v.question }}</a></td>
+          <td>{{ v.position }}</td>
+          <td>{{ v.result or "—" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% elif c.chamber == "state_senate" or c.chamber == "state_house" %}
+      {% if openstates_configured %}
+        {% if votes_rate_limited %}
+        <p class="empty">Open States rate limit hit (free tier is 10 requests/min). Try again in a minute — prior lookups are cached.</p>
+        {% else %}
+        <p class="empty">No state roll-call votes yet. Challengers and members without an Open States match show nothing here; sitting legislators usually appear after the prior session loads.</p>
+        {% endif %}
+      {% else %}
+      <p class="empty">State legislature votes require an Open States API key in <a href="/settings">Settings</a>.</p>
+      {% endif %}
+    {% elif c.external_id %}
+    <p class="empty">No recent roll-call votes found (challengers and non-members usually have none).</p>
+    {% else %}
+    <p class="empty">Roll-call history is available for sitting members of Congress (via FEC) and state legislators (via Open States).</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Party / affiliation</h2>
+    {% if affiliations %}
+    {% if affiliations_source %}
+    <p class="meta muted">Source: {{ affiliations_source }}</p>
+    {% endif %}
+    <table>
+      <thead><tr><th>Party</th><th>Role</th><th>Period</th><th>Source</th></tr></thead>
+      <tbody>
+      {% for a in affiliations %}
+        <tr>
+          <td>{{ a.party }}</td>
+          <td>{{ a.role }}</td>
+          <td class="nowrap">{% if a.start %}{{ a.start }}{% else %}—{% endif %}{% if a.end %} → {{ a.end }}{% elif a.start %} → present{% endif %}</td>
+          <td>{% if a.source %}{% if a.source_url %}<a href="{{ a.source_url }}" rel="noopener noreferrer" target="_blank">{{ a.source }}</a>{% else %}{{ a.source }}{% endif %}{% else %}—{% endif %}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    <p class="meta muted" style="margin-top:0.75rem">Public citable signals only (ballot filings, legislative service, official records) — not voter-registration history.</p>
+    {% else %}
+    <p class="empty">No public affiliation signals on file. We show only citable public records (ballot filings, legislative service) — not voter-registration data.</p>
+    {% endif %}
+  </section>
+
+  <p class="section-label">// Finance //</p>
+  <section class="card">
+    <h2>Financial information</h2>
+    {% if finance %}
+    <p class="meta muted">FEC cycle {{ finance.cycle }}{% if finance.coverage_end_date %} · as of {{ finance.coverage_end_date }}{% endif %}</p>
+    <div class="finance-grid">
+      <div class="finance-stat">
+        <span class="finance-label">Raised</span>
+        <span class="finance-value">{{ finance.receipts_display }}</span>
+      </div>
+      <div class="finance-stat">
+        <span class="finance-label">Spent</span>
+        <span class="finance-value">{{ finance.disbursements_display }}</span>
+      </div>
+      <div class="finance-stat">
+        <span class="finance-label">Cash on hand</span>
+        <span class="finance-value">{{ finance.cash_on_hand_display }}</span>
+      </div>
+      {% if finance.debts_display %}
+      <div class="finance-stat">
+        <span class="finance-label">Debts</span>
+        <span class="finance-value">{{ finance.debts_display }}</span>
+      </div>
+      {% endif %}
+    </div>
+    {% if finance.individual_display or finance.pac_display or finance.party_display %}
+    <p class="meta muted" style="margin-top:0.75rem">Receipts breakdown</p>
+    <div class="finance-grid finance-breakdown">
+      {% if finance.individual_display %}
+      <div class="finance-stat">
+        <span class="finance-label">Individual</span>
+        <span class="finance-value">{{ finance.individual_display }}</span>
+      </div>
+      {% endif %}
+      {% if finance.pac_display %}
+      <div class="finance-stat">
+        <span class="finance-label">Other committees (PACs)</span>
+        <span class="finance-value">{{ finance.pac_display }}</span>
+      </div>
+      {% endif %}
+      {% if finance.party_display %}
+      <div class="finance-stat">
+        <span class="finance-label">Party</span>
+        <span class="finance-value">{{ finance.party_display }}</span>
+      </div>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% if principal_committee %}
+    <p class="meta" style="margin-top:0.85rem">
+      {{ principal_committee.designation }}:
+      <a href="{{ principal_committee.url }}" rel="noopener noreferrer" target="_blank">{{ principal_committee.name }}</a>
+      <span class="muted">({{ principal_committee.committee_id }})</span>
+    </p>
+    {% endif %}
+    <p class="meta muted" style="margin-top:0.85rem">
+      Source: {{ finance.source_label }} ·
+      <a href="{{ finance.profile_url }}" rel="noopener noreferrer" target="_blank">FEC profile →</a>
+    </p>
+    {% elif finance_error %}
+    <p class="error">{{ finance_error }}</p>
+    <p class="hint">Totals load live from OpenFEC. Check your API key in Settings if you see rate limits.</p>
+    {% if c.external_id %}
+    <p class="meta"><a href="https://www.fec.gov/data/candidate/{{ c.external_id }}/" rel="noopener noreferrer" target="_blank">Open FEC profile →</a></p>
+    {% endif %}
+    {% elif finance_unavailable %}
+    <p class="empty">Campaign finance totals are only available for federal candidates with an FEC id.</p>
+    {% else %}
+    <p class="empty">No finance data.</p>
+    {% endif %}
+  </section>
+
+  {% if size_buckets %}
+  <section class="card">
+    <h2>Where money came from (by size)</h2>
+    <p class="meta muted">Itemized individual contribution sizes, FEC cycle {{ finance_cycle }}</p>
+    <table>
+      <thead><tr><th>Size</th><th>Total</th><th>Contributions</th></tr></thead>
+      <tbody>
+      {% for row in size_buckets %}
+        <tr>
+          <td>{{ row.label }}</td>
+          <td>{{ row.total_display }}</td>
+          <td>{{ row.count_display }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
+
+  {% if top_individuals or top_committees %}
+  <section class="card">
+    <h2>Top itemized contributors</h2>
+    <p class="meta muted">Largest single Schedule A lines (not unique-donor totals), cycle {{ finance_cycle }}</p>
+    {% if top_individuals %}
+    <p class="meta muted" style="margin-top:0.75rem">Individuals</p>
+    <table>
+      <thead><tr><th>Contributor</th><th>Amount</th><th>Date</th></tr></thead>
+      <tbody>
+      {% for row in top_individuals %}
+        <tr>
+          <td>
+            <a href="{{ row.url }}" rel="noopener noreferrer" target="_blank">{{ row.name }}</a>
+            {% if row.location %}<div class="muted note">{{ row.location }}</div>{% endif %}
+          </td>
+          <td class="nowrap">{{ row.amount_display }}</td>
+          <td class="nowrap">{{ row.date or "—" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+    {% if top_committees %}
+    <p class="meta muted" style="margin-top:1rem">Committees / PACs</p>
+    <table>
+      <thead><tr><th>Committee</th><th>Amount</th><th>Date</th></tr></thead>
+      <tbody>
+      {% for row in top_committees %}
+        <tr>
+          <td>
+            <a href="{{ row.url }}" rel="noopener noreferrer" target="_blank">{{ row.name }}</a>
+            {% if row.location %}<div class="muted note">{{ row.location }}</div>{% endif %}
+          </td>
+          <td class="nowrap">{{ row.amount_display }}</td>
+          <td class="nowrap">{{ row.date or "—" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if outside_spending %}
+  <section class="card">
+    <h2>Outside spending (top)</h2>
+    <p class="meta muted">Independent expenditures reported to the FEC (Schedule E), cycle {{ finance_cycle }}</p>
+    <table>
+      <thead><tr><th>Committee</th><th>Amount</th><th>Support / Oppose</th></tr></thead>
+      <tbody>
+      {% for row in outside_spending %}
+        <tr>
+          <td><a href="{{ row.url }}" rel="noopener noreferrer" target="_blank">{{ row.committee }}</a></td>
+          <td>{{ row.amount_display }}</td>
+          <td>{{ row.support_oppose }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </section>
+  {% endif %}
+
+  <p class="section-label">// Sources //</p>
+  <section class="card">
+    <h2>Sources</h2>
+    {% if c.sources %}
+    <ul class="sources">
+      {% for s in c.sources %}
+      <li>
+        <a href="{{ s.url }}" rel="noopener noreferrer" target="_blank">{{ s.url }}</a>
+        <span class="muted">
+          {% if s.publisher %} · {{ s.publisher }}{% endif %}
+          · scraped {{ s.retrieved_at }}
+        </span>
+        {% if s.note %}<div class="note">{{ s.note }}</div>{% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">No sources recorded.</p>
+    {% endif %}
+  </section>
+</article>

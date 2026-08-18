@@ -1,0 +1,24 @@
+[package]
+name = "electionizer-wasm"
+version = "0.1.0"
+edition = "2021"
+description = "wasm-bindgen bindings over electionizer-core (pure parse/map/build)"
+license = "MIT"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[dependencies]
+electionizer-core = { path = "../electionizer-core" }
+serde = { version = "1", features = ["derive"] }
+serde-wasm-bindgen = "0.6"
+serde_json = "1"
+wasm-bindgen = "0.2"
+console_error_panic_hook = { version = "0.1", optional = true }
+
+# chrono `clock` on wasm32 needs JS getrandom
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+getrandom = { version = "0.2", features = ["js"] }
+
+[features]
+default = ["console_error_panic_hook"]

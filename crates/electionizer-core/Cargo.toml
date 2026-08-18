@@ -1,0 +1,14 @@
+[package]
+name = "electionizer-core"
+version = "0.1.0"
+edition = "2021"
+description = "Pure domain logic for electionizer (models, parsers, ballot build) — no HTTP server or SQLite"
+license = "MIT"
+
+[dependencies]
+anyhow = "1"
+chrono = { version = "0.4", default-features = false, features = ["clock", "std", "serde"] }
+pdf-extract = "0.7"
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"

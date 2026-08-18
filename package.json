@@ -1,0 +1,10 @@
+{
+  "name": "electionizer",
+  "private": true,
+  "description": "Dev tooling only (LSP). Product is static web/ + WASM — no runtime npm deps.",
+  "type": "module",
+  "devDependencies": {
+    "typescript": "^5.9.2",
+    "typescript-language-server": "^5.3.0"
+  }
+}

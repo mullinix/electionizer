@@ -1,0 +1,38 @@
+# Static site = web/ (build WASM in CI before publish)
+[build]
+  base = "."
+  command = "./scripts/build-wasm.sh"
+  publish = "web"
+
+[build.environment]
+  PYTHON_VERSION = "3.11"
+  # build-wasm.sh bootstraps rustup + wasm-pack when NETLIFY/CI is set
+  NETLIFY = "true"
+
+# Correct MIME for WASM (required by browsers)
+[[headers]]
+  for = "/pkg/*.wasm"
+  [headers.values]
+    Content-Type = "application/wasm"
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/pkg/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=300"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"

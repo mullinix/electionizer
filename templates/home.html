@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="hero">
+  <p class="section-label" style="margin-top:0">// query //</p>
+  <h1>Who’s on your ballot?</h1>
+  <p>Enter your ZIP code for a summary of candidates and ballot measures in your area.</p>
+
+  {% if error %}
+  <p class="error" role="alert">{{ error }}</p>
+  {% endif %}
+  {% if demo_warning %}
+  <p class="warn-banner">
+    Using FEC <code>DEMO_KEY</code> (low rate limit).
+    <a href="/settings">Add your API key in Settings</a>
+    · <a href="https://api.open.fec.gov/developers/" rel="noopener noreferrer" target="_blank">Get a key</a>
+  </p>
+  {% endif %}
+
+  <form method="post" action="/" class="zip-form">
+    <label for="zip">ZIP code</label>
+    <div class="row">
+      <input id="zip" name="zip" type="text" inputmode="numeric" pattern="[0-9]{5}(-[0-9]{4})?"
+             placeholder="90210" required autofocus maxlength="10" autocomplete="postal-code">
+      <button type="submit">Get report</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

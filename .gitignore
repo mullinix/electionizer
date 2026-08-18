@@ -1,0 +1,11 @@
+/target
+*.db
+*.db-*
+.env
+electionizer.toml
+.DS_Store
+.aesthetic
+web/pkg/
+.venv-wisp/
+mcp/electionizer/node_modules/
+/node_modules/

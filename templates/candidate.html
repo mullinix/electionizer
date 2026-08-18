@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block content %}
+<div id="detail-stream" data-stream-url="{{ stream_url }}">
+  <div id="detail-shell">
+    <p class="crumb">
+      {% if c.zip %}
+      <a href="/ballot/{{ c.zip }}">← Back to ballot</a>
+      {% else %}
+      <a href="/">← Home</a>
+      {% endif %}
+    </p>
+    <h1>{{ c.name }}</h1>
+    <p class="meta">{{ c.party }} · {{ c.office }} · {{ c.jurisdiction }}</p>
+    <p class="meta muted">{{ c.election_name }} · {{ c.election_date }}
+      {% if c.is_incumbent %} · Incumbent{% endif %}
+      {% if c.is_judge %} · Judicial{% endif %}
+      {% if c.external_id %} · FEC {{ c.external_id }}{% endif %}
+    </p>
+
+    <p class="section-label">// Profile //</p>
+    <section class="card">
+      <h2>Summary</h2>
+      <p>{{ c.summary or "No summary available yet." }}</p>
+    </section>
+
+    <p class="section-label">// Loading detail //</p>
+    <section class="card job-status detail-progress" id="detail-progress" role="status" aria-live="polite">
+      <div class="bar-wrap" aria-hidden="true">
+        <div class="bar" id="detail-bar" style="width: 0%"></div>
+      </div>
+      <p class="pct" id="detail-pct"><strong>0 / {{ stages|length }}</strong> · starting…</p>
+      <p class="msg" id="detail-msg">Connecting to data sources…</p>
+      <ul class="stage-list" id="detail-stages">
+        {% for s in stages %}
+        <li data-stage-id="{{ s.id }}" class="stage-pending">
+          <span class="stage-mark" aria-hidden="true">·</span>
+          <span class="stage-label">{{ s.label }}</span>
+          <span class="stage-detail muted"></span>
+        </li>
+        {% endfor %}
+      </ul>
+    </section>
+  </div>
+  <div id="detail-root" hidden></div>
+</div>
+{% endblock %}

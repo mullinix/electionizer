@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="progress-page">
+  <p class="section-label" style="margin-top:0">// job status //</p>
+  {% if is_refresh %}
+  <h1>Refreshing ballot for {{ job.zip }}</h1>
+  <p class="meta muted">Updating jurisdictions, candidates, and measures…</p>
+  <p class="meta"><a href="/ballot/{{ job.zip }}">View previous report →</a></p>
+  {% else %}
+  <h1>Building ballot for {{ job.zip }}</h1>
+  <p class="meta muted">This ZIP isn’t cached yet. Gathering jurisdictions, candidates, and measures…</p>
+  {% endif %}
+
+  {% set compact = false %}
+  {% include "partials/job_status.html" %}
+  {% if rate_limited %}
+  <p class="warn-banner" style="margin-top:1rem">
+    FEC rate limit — <a href="/settings">set your API key in Settings</a>
+  </p>
+  {% endif %}
+</section>
+{% endblock %}

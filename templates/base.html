@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="sage">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }} · electionizer</title>
+  <script>
+    (function () {
+      var KEY = "electionizer-theme";
+      var ok = {
+        sage: 1, midnight: 1, amber: 1, bipartisan: 1,
+        violet: 1, rose: 1, ice: 1, phosphor: 1
+      };
+      var t = null;
+      try { t = localStorage.getItem(KEY); } catch (e) {}
+      if (!t || !ok[t]) {
+        var m = document.cookie.match(/(?:^|;\s*)electionizer-theme=([^;]+)/);
+        t = m ? decodeURIComponent(m[1]) : "sage";
+      }
+      if (!ok[t]) t = "sage";
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/app.css">
+  <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+  <script src="/static/theme.js" defer></script>
+  <script src="/static/detail.js" defer></script>
+</head>
+<body>
+  <div class="hex-grid" aria-hidden="true"></div>
+  <header class="site-header">
+    <div class="brand-block">
+      <span class="site-label">// ballot archive</span>
+      <a href="/" class="brand">electionizer</a>
+    </div>
+    <span class="tagline">ZIP → ballot report</span>
+    <div class="header-status" aria-hidden="true">
+      <span>SYS <span class="val">ONLINE</span><span class="cursor">█</span></span>
+      <span>MODE <span class="val">HUD</span></span>
+    </div>
+    <nav class="nav">
+      <a href="/settings">Settings</a>
+    </nav>
+  </header>
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+  <footer class="site-footer">
+    <p>// sources cited on every detail page · data refreshed daily when the daemon is running</p>
+  </footer>
+</body>
+</html>

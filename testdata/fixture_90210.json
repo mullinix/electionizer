@@ -1,0 +1,211 @@
+{
+  "zip": "90210",
+  "geo": {
+    "state": "CA",
+    "state_name": "California",
+    "county": "Los Angeles County",
+    "city": "Beverly Hills",
+    "congressional_district": "CA-32",
+    "state_senate_district": "SD-24",
+    "state_house_district": "AD-51",
+    "jurisdictions": [
+      {
+        "ocd_id": "ocd-division/country:us",
+        "name": "United States",
+        "level": "federal",
+        "state": null
+      },
+      {
+        "ocd_id": "ocd-division/country:us/state:ca",
+        "name": "California",
+        "level": "state",
+        "state": "CA"
+      },
+      {
+        "ocd_id": "ocd-division/country:us/state:ca/county:los_angeles",
+        "name": "Los Angeles County",
+        "level": "county",
+        "state": "CA"
+      },
+      {
+        "ocd_id": "ocd-division/country:us/state:ca/place:beverly_hills",
+        "name": "Beverly Hills",
+        "level": "municipal",
+        "state": "CA"
+      },
+      {
+        "ocd_id": "ocd-division/country:us/state:ca/cd:32",
+        "name": "California's 32nd Congressional District",
+        "level": "congressional",
+        "state": "CA"
+      }
+    ]
+  },
+  "election": {
+    "name": "2026 General Election",
+    "election_date": "2026-11-03",
+    "scope": "general"
+  },
+  "candidates": [
+    {
+      "office": "U.S. Senate",
+      "chamber": "senate",
+      "jurisdiction_ocd": "ocd-division/country:us/state:ca",
+      "is_judicial": false,
+      "name": "Alex Rivera",
+      "party": "Democratic",
+      "is_incumbent": true,
+      "is_judge": false,
+      "summary": "Incumbent U.S. Senator focusing on housing affordability and climate resilience.",
+      "source_url": "https://example.com/sources/ca-senate-rivera",
+      "source_publisher": "Fixture Election Board"
+    },
+    {
+      "office": "U.S. Senate",
+      "chamber": "senate",
+      "jurisdiction_ocd": "ocd-division/country:us/state:ca",
+      "is_judicial": false,
+      "name": "Jordan Blake",
+      "party": "Republican",
+      "is_incumbent": false,
+      "is_judge": false,
+      "summary": "Challenger emphasizing border security and small-business tax relief.",
+      "source_url": "https://example.com/sources/ca-senate-blake",
+      "source_publisher": "Fixture Election Board"
+    },
+    {
+      "office": "U.S. House",
+      "chamber": "house",
+      "jurisdiction_ocd": "ocd-division/country:us/state:ca/cd:32",
+      "is_judicial": false,
+      "name": "Sam Chen",
+      "party": "Democratic",
+      "is_incumbent": true,
+      "is_judge": false,
+      "summary": "Represents CA-32; priorities include transit funding and wildfire prevention.",
+      "source_url": "https://example.com/sources/ca32-chen",
+      "source_publisher": "Fixture Election Board"
+    },
+    {
+      "office": "U.S. House",
+      "chamber": "house",
+      "jurisdiction_ocd": "ocd-division/country:us/state:ca/cd:32",
+      "is_judicial": false,
+      "name": "Taylor Morgan",
+      "party": "Republican",
+      "is_incumbent": false,
+      "is_judge": false,
+      "summary": "Local entrepreneur running on public-safety and education choice.",
+      "source_url": "https://example.com/sources/ca32-morgan",
+      "source_publisher": "Fixture Election Board"
+    },
+    {
+      "office": "Governor",
+      "chamber": null,
+      "jurisdiction_ocd": "ocd-division/country:us/state:ca",
+      "is_judicial": false,
+      "name": "Casey Nguyen",
+      "party": "Democratic",
+      "is_incumbent": false,
+      "is_judge": false,
+      "summary": "Former state legislator; platform centers on housing supply and water infrastructure.",
+      "source_url": "https://example.com/sources/ca-gov-nguyen",
+      "source_publisher": "Fixture Election Board"
+    },
+    {
+      "office": "Governor",
+      "chamber": null,
+      "jurisdiction_ocd": "ocd-division/country:us/state:ca",
+      "is_judicial": false,
+      "name": "Riley Brooks",
+      "party": "Republican",
+      "is_incumbent": false,
+      "is_judge": false,
+      "summary": "County supervisor focusing on cost of living and energy reliability.",
+      "source_url": "https://example.com/sources/ca-gov-brooks",
+      "source_publisher": "Fixture Election Board"
+    },
+    {
+      "office": "Superior Court Judge, Seat 3",
+      "chamber": "judicial",
+      "jurisdiction_ocd": "ocd-division/country:us/state:ca/county:los_angeles",
+      "is_judicial": true,
+      "name": "Hon. Morgan Ellis",
+      "party": "Nonpartisan",
+      "is_incumbent": true,
+      "is_judge": true,
+      "summary": "Sitting superior court judge; previously a public defender and civil litigator.",
+      "source_url": "https://example.com/sources/la-judge-ellis",
+      "source_publisher": "LA County Registrar"
+    },
+    {
+      "office": "Superior Court Judge, Seat 3",
+      "chamber": "judicial",
+      "jurisdiction_ocd": "ocd-division/country:us/state:ca/county:los_angeles",
+      "is_judicial": true,
+      "name": "Pat Okonkwo",
+      "party": "Nonpartisan",
+      "is_incumbent": false,
+      "is_judge": true,
+      "summary": "Criminal defense attorney seeking judicial seat; emphasizes case backlog reduction.",
+      "source_url": "https://example.com/sources/la-judge-okonkwo",
+      "source_publisher": "LA County Registrar"
+    },
+    {
+      "office": "City Council, District 1",
+      "chamber": null,
+      "jurisdiction_ocd": "ocd-division/country:us/state:ca/place:beverly_hills",
+      "is_judicial": false,
+      "name": "Jamie Ortiz",
+      "party": "Democratic",
+      "is_incumbent": true,
+      "is_judge": false,
+      "summary": "Incumbent councilmember focused on zoning reform and local transit.",
+      "source_url": "https://example.com/sources/bh-council-ortiz",
+      "source_publisher": "City of Beverly Hills"
+    },
+    {
+      "office": "City Council, District 1",
+      "chamber": null,
+      "jurisdiction_ocd": "ocd-division/country:us/state:ca/place:beverly_hills",
+      "is_judicial": false,
+      "name": "Chris Adler",
+      "party": "Republican",
+      "is_incumbent": false,
+      "is_judge": false,
+      "summary": "Neighborhood advocate running on public safety and business permits.",
+      "source_url": "https://example.com/sources/bh-council-adler",
+      "source_publisher": "City of Beverly Hills"
+    }
+  ],
+  "measures": [
+    {
+      "title": "School Facilities Bond",
+      "measure_code": "Prop 12",
+      "jurisdiction_ocd": "ocd-division/country:us/state:ca",
+      "summary": "Authorizes $8B in bonds for K-12 school construction and modernization.",
+      "source_url": "https://example.com/sources/ca-prop-12",
+      "source_publisher": "California Secretary of State"
+    },
+    {
+      "title": "Local Parks Parcel Tax",
+      "measure_code": "Measure H",
+      "jurisdiction_ocd": "ocd-division/country:us/state:ca/place:beverly_hills",
+      "summary": "Establishes a $48/year parcel tax for park maintenance and tree canopy programs.",
+      "source_url": "https://example.com/sources/bh-measure-h",
+      "source_publisher": "City of Beverly Hills"
+    },
+    {
+      "title": "County Homeless Services",
+      "measure_code": "Measure B",
+      "jurisdiction_ocd": "ocd-division/country:us/state:ca/county:los_angeles",
+      "summary": "Continues a 0.25% sales tax for homeless housing and mental health services.",
+      "source_url": "https://example.com/sources/la-measure-b",
+      "source_publisher": "LA County Registrar"
+    }
+  ],
+  "source": {
+    "url": "https://example.com/fixtures/90210",
+    "publisher": "Electionizer Fixture Provider"
+  }
+}

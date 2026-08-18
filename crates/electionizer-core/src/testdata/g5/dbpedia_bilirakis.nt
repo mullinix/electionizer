@@ -1,0 +1,20 @@
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/property/spouse>	"Eva Lialios"@en .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/ontology/birthPlace>	<http://dbpedia.org/resource/Florida> .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/ontology/relation>	<http://dbpedia.org/resource/Michael_Bilirakis> .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/ontology/education>	<http://dbpedia.org/resource/St._Petersburg_College> .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/property/relatives>	<http://dbpedia.org/resource/Michael_Bilirakis> .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/property/children>	"4"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/property/spouse>	"1991"^^<http://www.w3.org/2001/XMLSchema#integer> .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/property/birthDate>	"1963-02-08"^^<http://www.w3.org/2001/XMLSchema#date> .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/property/birthPlace>	"Gainesville, Florida, U.S."@en .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/property/education>	"Stetson University"@en .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/ontology/birthName>	"Gus Michael Bilirakis"@en .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/ontology/birthDate>	"1963-02-08"^^<http://www.w3.org/2001/XMLSchema#date> .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/property/education>	<http://dbpedia.org/resource/St._Petersburg_College> .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/ontology/education>	<http://dbpedia.org/resource/Stetson_University> .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/property/education>	<http://dbpedia.org/resource/University_of_Florida> .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/property/spouse>	""@en .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/ontology/thumbnail>	<http://commons.wikimedia.org/wiki/Special:FilePath/Gus_Bilirakis,_official_portrait,_118th_Congress_(cropped).jpg?width=300> .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/property/birthName>	"Gus Michael Bilirakis"@en .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/ontology/birthPlace>	<http://dbpedia.org/resource/Gainesville,_Florida> .
+<http://dbpedia.org/resource/Gus_Bilirakis>	<http://dbpedia.org/ontology/education>	<http://dbpedia.org/resource/University_of_Florida> .

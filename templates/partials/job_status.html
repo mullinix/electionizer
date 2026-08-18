@@ -1,0 +1,27 @@
+{% set is_compact = compact if compact is defined else false %}
+<div id="job-status"
+     class="job-status status-{{ job.status }}{% if is_compact %} job-status-compact{% endif %}"
+     {% if job.status == "queued" or job.status == "running" %}
+     hx-get="/jobs/{{ job.id }}"
+     hx-trigger="every 1s"
+     hx-swap="outerHTML"
+     {% endif %}>
+  <div class="bar-wrap" aria-hidden="true">
+    <div class="bar" style="width: {{ job.progress_pct }}%"></div>
+  </div>
+  <p class="pct"><strong>{{ job.progress_pct }}%</strong> · {{ job.stage }}</p>
+  <p class="msg">{{ job.message }}</p>
+  {% if job.error %}
+  <p class="error">{{ job.error }}</p>
+  {% if rate_limited %}
+  <p><a href="/settings">Set FEC API key in Settings</a>
+     · <a href="https://api.open.fec.gov/developers/" rel="noopener noreferrer" target="_blank">Get a key</a></p>
+  {% endif %}
+  {% if not is_compact %}
+  <p><a href="/">Try again</a></p>
+  {% endif %}
+  {% endif %}
+  {% if job.status == "ready" and not is_compact %}
+  <p><a href="/ballot/{{ job.zip }}">View ballot report →</a></p>
+  {% endif %}
+</div>

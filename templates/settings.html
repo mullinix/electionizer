@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="settings">
+  <p class="crumb"><a href="/">← Home</a></p>
+  <h1>Settings</h1>
+  <p class="meta muted">Config file: <code>{{ config_path }}</code></p>
+
+  {% if message %}
+  <p class="ok" role="status">{{ message }}</p>
+  {% endif %}
+  {% if error %}
+  <p class="error" role="alert">{{ error }}</p>
+  {% endif %}
+
+  <p class="section-label">// Appearance //</p>
+  <section class="card">
+    <h2>Theme</h2>
+    <p class="hint">Applies instantly on this device. Preference is stored in your browser.</p>
+    <div class="theme-grid" data-theme-picker role="radiogroup" aria-label="Color theme">
+      <button type="button" class="theme-swatch" role="radio" data-theme-id="sage" aria-checked="false">
+        <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+        <span class="swatch-name">Sage</span>
+        <span class="swatch-desc">Muted CRT teal archive</span>
+      </button>
+      <button type="button" class="theme-swatch" role="radio" data-theme-id="midnight" aria-checked="false">
+        <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+        <span class="swatch-name">Midnight</span>
+        <span class="swatch-desc">Deep navy tactical HUD</span>
+      </button>
+      <button type="button" class="theme-swatch" role="radio" data-theme-id="amber" aria-checked="false">
+        <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+        <span class="swatch-name">Amber</span>
+        <span class="swatch-desc">Warm terminal phosphor</span>
+      </button>
+      <button type="button" class="theme-swatch" role="radio" data-theme-id="bipartisan" aria-checked="false">
+        <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+        <span class="swatch-name">Bipartisan</span>
+        <span class="swatch-desc">Neutral chrome, party accents</span>
+      </button>
+      <button type="button" class="theme-swatch" role="radio" data-theme-id="violet" aria-checked="false">
+        <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+        <span class="swatch-name">Violet</span>
+        <span class="swatch-desc">Deep purple cyber HUD</span>
+      </button>
+      <button type="button" class="theme-swatch" role="radio" data-theme-id="rose" aria-checked="false">
+        <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+        <span class="swatch-name">Rose</span>
+        <span class="swatch-desc">Wine phosphor archive</span>
+      </button>
+      <button type="button" class="theme-swatch" role="radio" data-theme-id="ice" aria-checked="false">
+        <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+        <span class="swatch-name">Ice</span>
+        <span class="swatch-desc">Cool slate + cyan</span>
+      </button>
+      <button type="button" class="theme-swatch" role="radio" data-theme-id="phosphor" aria-checked="false">
+        <div class="swatch-chips" aria-hidden="true"><span class="c1"></span><span class="c2"></span><span class="c3"></span><span class="c4"></span></div>
+        <span class="swatch-name">Phosphor</span>
+        <span class="swatch-desc">Classic green CRT</span>
+      </button>
+    </div>
+  </section>
+
+  <p class="section-label">// Data sources //</p>
+  <section class="card">
+    <h2>API keys</h2>
+    <form method="post" action="/settings" class="settings-form">
+      <h3 class="settings-subhead">OpenFEC</h3>
+      <p>
+        Federal candidate data from the
+        <a href="https://api.open.fec.gov/developers/" rel="noopener noreferrer" target="_blank">OpenFEC API</a>.
+        <code>DEMO_KEY</code> is limited to ~40 requests/hour.
+      </p>
+      <p class="meta">Current key: <strong>{{ masked_key }}</strong>
+        {% if is_demo %}<span class="badge warn">using DEMO_KEY</span>{% endif %}
+      </p>
+      <label for="fec_api_key">FEC API key</label>
+      <input id="fec_api_key" name="fec_api_key" type="password" autocomplete="off"
+             placeholder="Paste key (leave blank to keep current)" spellcheck="false">
+
+      <h3 class="settings-subhead">Open States</h3>
+      <p>
+        State legislature roll-calls (FL, AZ, …) via
+        <a href="https://docs.openstates.org/api-v3/" rel="noopener noreferrer" target="_blank">Open States API v3</a>.
+        Free key:
+        <a href="https://open.pluralpolicy.com/accounts/profile/" rel="noopener noreferrer" target="_blank">register →</a>
+      </p>
+      <p class="meta">Current key: <strong>{{ openstates_masked }}</strong>
+        {% if not openstates_set %}<span class="badge warn">not set — state votes disabled</span>{% endif %}
+      </p>
+      <label for="openstates_api_key">Open States API key</label>
+      <input id="openstates_api_key" name="openstates_api_key" type="password" autocomplete="off"
+             placeholder="Paste key (leave blank to keep current)" spellcheck="false">
+
+      <p class="hint">Leave a field blank to keep the current value. Saving writes <code>{{ config_path }}</code>.</p>
+      <button type="submit">Save keys</button>
+    </form>
+  </section>
+
+  <p class="section-label">// Runtime //</p>
+  <section class="card muted-card">
+    <h2>Runtime</h2>
+    <ul class="plain">
+      <li>Provider: <code>{{ provider }}</code></li>
+      <li>Election cycle: <code>{{ cycle }}</code></li>
+    </ul>
+    <p class="hint">Change provider/cycle in the TOML file or via CLI flags for now.</p>
+  </section>
+</section>
+{% endblock %}

@@ -1,0 +1,28 @@
+{
+  "draw": 1,
+  "recordsTotal": 3,
+  "recordsFiltered": 3,
+  "data": [
+    [
+      "<a href=\"/search/view/annual/008b142d-54f3-4e9b-8aca-f378eb9b9cf0/\" target=\"_blank\">Tillis, Thomas (R)</a>",
+      "Senator",
+      "North Carolina",
+      "Annual",
+      "05/12/2021"
+    ],
+    [
+      "<a href=\"/search/view/annual/aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee/\">Tillis, Thomas (R)</a>",
+      "Senator",
+      "North Carolina",
+      "Annual",
+      "05/15/2020"
+    ],
+    [
+      "<a href=\"/search/view/ptr/bbbbbbbb-bbbb-cccc-dddd-eeeeeeeeeeee/\">Tillis, Thomas (R)</a>",
+      "Senator",
+      "North Carolina",
+      "Periodic Transaction Report",
+      "06/01/2021"
+    ]
+  ]
+}

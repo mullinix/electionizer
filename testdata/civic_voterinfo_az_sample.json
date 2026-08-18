@@ -1,0 +1,132 @@
+{
+  "kind": "civicinfo#voterInfoResponse",
+  "status": "success",
+  "election": {
+    "id": "9001",
+    "name": "Arizona General Election",
+    "electionDay": "2024-11-05",
+    "ocdDivisionId": "ocd-division/country:us/state:az"
+  },
+  "normalizedInput": {
+    "line1": "",
+    "city": "Phoenix",
+    "state": "AZ",
+    "zip": "85004"
+  },
+  "contests": [
+    {
+      "type": "General",
+      "ballotTitle": "UNITED STATES REPRESENTATIVE, 3rd District",
+      "office": "United States Representative",
+      "level": ["country"],
+      "roles": ["legislatorLowerBody"],
+      "district": {
+        "name": "3RD US CONGRESSIONAL",
+        "scope": "congressional",
+        "id": "3"
+      },
+      "candidates": [
+        {
+          "name": "FEDERAL SHOULD SKIP",
+          "party": "Democratic"
+        }
+      ],
+      "sources": [{ "name": "Voting Information Project", "official": true }]
+    },
+    {
+      "type": "General",
+      "ballotTitle": "Governor",
+      "office": "Governor",
+      "level": ["administrativeArea1"],
+      "roles": ["headOfGovernment"],
+      "district": {
+        "name": "ARIZONA",
+        "scope": "statewide",
+        "id": "ocd-division/country:us/state:az"
+      },
+      "candidates": [
+        {
+          "name": "Katie Hobbs",
+          "party": "Democratic",
+          "candidateUrl": "https://katiehobbs.org"
+        },
+        {
+          "name": "Challenger Candidate",
+          "party": "Republican"
+        }
+      ],
+      "sources": [{ "name": "Voting Information Project", "official": true }]
+    },
+    {
+      "type": "General",
+      "ballotTitle": "State Senator - District 5",
+      "office": "State Senator",
+      "level": ["administrativeArea1"],
+      "roles": ["legislatorUpperBody"],
+      "district": {
+        "name": "Legislative District 5",
+        "scope": "stateUpper",
+        "id": "5"
+      },
+      "candidates": [
+        {
+          "name": "Senate Incumbent",
+          "party": "Democratic"
+        },
+        {
+          "name": "Senate Challenger",
+          "party": "Republican"
+        }
+      ],
+      "sources": [{ "name": "Voting Information Project", "official": true }]
+    },
+    {
+      "type": "General",
+      "ballotTitle": "State Representative - District 5",
+      "office": "State Representative",
+      "level": ["administrativeArea1"],
+      "roles": ["legislatorLowerBody"],
+      "district": {
+        "name": "Legislative District 5",
+        "scope": "stateLower",
+        "id": "5"
+      },
+      "candidates": [
+        {
+          "name": "House One",
+          "party": "Democratic"
+        },
+        {
+          "name": "House Two",
+          "party": "Republican"
+        }
+      ],
+      "sources": [{ "name": "Voting Information Project", "official": true }]
+    },
+    {
+      "type": "Referendum",
+      "ballotTitle": "PROPOSITION 139",
+      "referendumTitle": "PROPOSITION 139",
+      "referendumSubtitle": "Sample statewide proposition text for tests.",
+      "referendumBrief": "Would amend the state constitution regarding sample topic.",
+      "referendumUrl": "https://azsos.gov/elections",
+      "district": {
+        "name": "ARIZONA",
+        "scope": "statewide",
+        "id": "ocd-division/country:us/state:az"
+      },
+      "referendumBallotResponses": ["YES", "NO"],
+      "sources": [{ "name": "Voting Information Project", "official": true }]
+    }
+  ],
+  "state": [
+    {
+      "name": "Arizona",
+      "electionAdministrationBody": {
+        "name": "Secretary of State",
+        "electionInfoUrl": "https://azsos.gov/elections",
+        "ballotInfoUrl": "https://azsos.gov/elections"
+      }
+    }
+  ]
+}

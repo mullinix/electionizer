@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="ballot">
+  <p class="crumb"><a href="/">← New ZIP</a></p>
+  <h1>Ballot for {{ report.zip }}</h1>
+  {% if report.geo_summary %}
+  <p class="meta">{{ report.geo_summary }}</p>
+  {% endif %}
+  {% if report.election_name %}
+  <p class="meta">{{ report.election_name }}{% if report.election_date %} · {{ report.election_date }}{% endif %}</p>
+  {% endif %}
+  {% if report.coverage_note %}
+  <p class="badge">{{ report.coverage_note }}</p>
+  {% endif %}
+  {% if report.last_built_at %}
+  <p class="meta muted">Last built {{ report.last_built_at }}</p>
+  {% endif %}
+
+  {% if refreshing and refresh_job %}
+  <div class="refresh-banner" role="status">
+    <p class="refresh-title">// Updating report — showing last good data</p>
+    {% set job = refresh_job %}
+    {% set rate_limited = false %}
+    {% set compact = true %}
+    {% include "partials/job_status.html" %}
+  </div>
+  {% elif last_refresh_error %}
+  <p class="warn-banner" role="status">
+    Last refresh failed — still showing previous report.
+    <span class="muted">{{ last_refresh_error }}</span>
+  </p>
+  {% endif %}
+
+  <p class="section-label">// Candidates //</p>
+  {% if report.ballot_sections %}
+  <div class="office-list">
+    {% for sec in report.ballot_sections %}
+    {% if sec.kind == "judicial" %}
+    {% set on_ballot = sec.seats|selectattr("default_open")|list %}
+    {% set unopposed = sec.seats|rejectattr("default_open")|list %}
+    <section class="card judicial-block">
+      <header class="office-head">
+        <h2>Judicial</h2>
+        <p class="office-jurisdiction">
+          {% if unopposed and on_ballot %}{{ on_ballot|length }} on ballot · {{ unopposed|length }} unopposed
+          {% elif unopposed %}{{ unopposed|length }} unopposed
+          {% else %}{{ sec.seats|length }} seat{% if sec.seats|length != 1 %}s{% endif %}
+          {% endif %}
+        </p>
+      </header>
+      {% if sec.explainer %}
+      <p class="judicial-explainer">{{ sec.explainer }}</p>
+      {% endif %}
+      <div class="judicial-seats">
+        {% for g in on_ballot %}
+        <details class="judicial-seat{% if g.empty_message %} office-empty{% endif %}" open>
+          <summary>
+            <span class="judicial-seat-title">{{ g.office }}</span>
+            {% if g.jurisdiction %}
+            <span class="office-jurisdiction">{{ g.jurisdiction }}</span>
+            {% endif %}
+            {% if g.candidates %}
+            <span class="judicial-seat-count">{% if g.candidates|length > 1 %}{{ g.candidates|length }} candidates · contested{% else %}retention / single name{% endif %}</span>
+            {% endif %}
+          </summary>
+          {% if g.empty_message %}
+          <p class="empty">{{ g.empty_message }}</p>
+          {% elif g.candidates %}
+          <table>
+            <thead><tr><th>Name</th><th>Party</th><th>Notes</th></tr></thead>
+            <tbody>
+            {% for c in g.candidates %}
+              <tr>
+                <td><a href="/candidate/{{ c.id }}">{{ c.name }}</a></td>
+                <td><span class="party-chip party-{{ c.party_class }}">{{ c.party }}</span></td>
+                <td>{% if c.is_judge %}Judge{% endif %}{% if c.is_incumbent %}{% if c.is_judge %} · {% endif %}Incumbent{% endif %}</td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="empty">No candidates found.</p>
+          {% endif %}
+        </details>
+        {% endfor %}
+        {% if unopposed %}
+        <details class="judicial-seat judicial-seat-unopposed">
+          <summary>
+            <span class="judicial-seat-title">Unopposed (takes bench)</span>
+            <span class="judicial-seat-count">{{ unopposed|length }} seat{% if unopposed|length != 1 %}s{% endif %}</span>
+          </summary>
+          <table class="judicial-unopposed-table">
+            <thead><tr><th>Seat</th><th>Name</th><th>Party</th><th>Notes</th></tr></thead>
+            <tbody>
+            {% for g in unopposed %}
+              {% for c in g.candidates %}
+              <tr>
+                <td>{{ g.office }}</td>
+                <td><a href="/candidate/{{ c.id }}">{{ c.name }}</a></td>
+                <td><span class="party-chip party-{{ c.party_class }}">{{ c.party }}</span></td>
+                <td>{% if c.is_judge %}Judge · {% endif %}Unopposed</td>
+              </tr>
+              {% endfor %}
+            {% endfor %}
+            </tbody>
+          </table>
+        </details>
+        {% endif %}
+      </div>
+    </section>
+    {% elif sec.group %}
+    {% set g = sec.group %}
+    <section class="card office-card{% if g.empty_message %} office-empty{% endif %}">
+      <header class="office-head">
+        <h2>{{ g.office }}</h2>
+        {% if g.jurisdiction %}
+        <p class="office-jurisdiction">{{ g.jurisdiction }}</p>
+        {% endif %}
+      </header>
+      {% if g.empty_message %}
+      <p class="empty">{{ g.empty_message }}</p>
+      {% elif g.candidates %}
+      <table>
+        <thead><tr><th>Name</th><th>Party</th><th>Notes</th></tr></thead>
+        <tbody>
+        {% for c in g.candidates %}
+          <tr>
+            <td><a href="/candidate/{{ c.id }}">{{ c.name }}</a></td>
+            <td><span class="party-chip party-{{ c.party_class }}">{{ c.party }}</span></td>
+            <td>{% if c.is_judge %}Judge{% endif %}{% if c.is_incumbent %}{% if c.is_judge %} · {% endif %}Incumbent{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty">No candidates found.</p>
+      {% endif %}
+    </section>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <section class="card">
+    <p class="empty">No candidates found for this ZIP.</p>
+  </section>
+  {% endif %}
+
+  <p class="section-label">// Measures //</p>
+  <section class="card">
+    <h2>Ballot measures</h2>
+    {% if report.measures %}
+    <table>
+      <thead><tr><th>Measure</th><th>Jurisdiction</th><th>Summary</th></tr></thead>
+      <tbody>
+      {% for m in report.measures %}
+        <tr>
+          <td><a href="/measure/{{ m.id }}">{% if m.measure_code %}{{ m.measure_code }}: {% endif %}{{ m.title }}</a></td>
+          <td>{{ m.jurisdiction }}</td>
+          <td>{{ m.summary or "—" }}</td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="empty">No ballot measures found.</p>
+    {% endif %}
+  </section>
+
+  {% if report.voter_portal %}
+  <p class="section-label">// Your registration //</p>
+  <section class="card muted-card">
+    <h2>Check voter registration</h2>
+    <p class="meta">Confirm your status with the official portal for this ballot’s state.</p>
+    <p><a href="{{ report.voter_portal.url }}" rel="noopener noreferrer" target="_blank">{{ report.voter_portal.label }} →</a></p>
+  </section>
+  {% endif %}
+</section>
+{% endblock %}

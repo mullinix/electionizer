@@ -1,0 +1,31 @@
+{
+  "draw": "1",
+  "recordsTotal": 2,
+  "recordsFiltered": 2,
+  "data": [
+    {
+      "EntityID": 10001,
+      "EntityLastName": "HOBBS, KATIE",
+      "CommitteeName": "Katie Hobbs for Governor",
+      "OfficeName": "Governor",
+      "PartyName": "Democratic",
+      "Income": 1250000.5,
+      "Expense": 980000.25,
+      "CashBalance": 270000.1,
+      "IESupport": 0,
+      "IEAgainst": 0
+    },
+    {
+      "EntityID": 10002,
+      "EntityLastName": "ALSTON, LELA",
+      "CommitteeName": "Alston for Senate",
+      "OfficeName": "State Senator - District 5",
+      "PartyName": "Democratic Party",
+      "Income": 45230.0,
+      "Expense": 38100.5,
+      "CashBalance": 7129.5,
+      "IESupport": 0,
+      "IEAgainst": 0
+    }
+  ]
+}

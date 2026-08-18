@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<article class="detail">
+  <p class="crumb"><a href="javascript:history.back()">← Back</a></p>
+  <h1>{% if m.measure_code %}{{ m.measure_code }}: {% endif %}{{ m.title }}</h1>
+  <p class="meta">{{ m.jurisdiction }}</p>
+  <p class="meta muted">{{ m.election_name }} · {{ m.election_date }}</p>
+
+  <p class="section-label">// Profile //</p>
+  <section class="card">
+    <h2>Summary</h2>
+    <p>{{ m.summary or "No summary available yet." }}</p>
+  </section>
+
+  <section class="card muted-card">
+    <h2>Funding &amp; affiliations</h2>
+    <p class="empty">Not yet collected in this thin slice.</p>
+  </section>
+
+  <p class="section-label">// Sources //</p>
+  <section class="card">
+    <h2>Sources</h2>
+    {% if m.sources %}
+    <ul class="sources">
+      {% for s in m.sources %}
+      <li>
+        <a href="{{ s.url }}" rel="noopener noreferrer" target="_blank">{{ s.url }}</a>
+        <span class="muted">
+          {% if s.publisher %} · {{ s.publisher }}{% endif %}
+          · scraped {{ s.retrieved_at }}
+        </span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="empty">No sources recorded.</p>
+    {% endif %}
+  </section>
+</article>
+{% endblock %}
