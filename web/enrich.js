@@ -13,6 +13,7 @@ import {
   getLlmModel,
   hasLlmKey,
   getVoterProfile,
+  getCustomProfileAxes,
 } from "./settings.js";
 import {
   curlCloseSession,
@@ -602,8 +603,15 @@ function subjectFromCandidate(c) {
 
 function packedJsonFrom(subject, enrich, opts = {}) {
   const merged = { ...(enrich || {}) };
-  if (opts.profile !== false) merged.voter_profile = getVoterProfile();
-  else delete merged.voter_profile;
+  if (opts.profile !== false) {
+    merged.voter_profile = getVoterProfile();
+    const catalog = getCustomProfileAxes();
+    if (catalog.length) merged.voter_profile_catalog = catalog;
+    else delete merged.voter_profile_catalog;
+  } else {
+    delete merged.voter_profile;
+    delete merged.voter_profile_catalog;
+  }
   const subjectJson = JSON.stringify(subject || {});
   const enrichJson = JSON.stringify(merged);
   try {

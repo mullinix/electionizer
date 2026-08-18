@@ -1,0 +1,366 @@
+{
+  "kind": "electionizer-voter-profile",
+  "version": 1,
+  "axes": [
+    {
+      "id": "maga",
+      "label": "MAGA",
+      "definition": "Make America Great Again movement: America-first rhetoric, Trump loyalty, anti-establishment posture, border/immigration hard line.",
+      "group": "Movements",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "america_first",
+      "label": "America First",
+      "definition": "Non-interventionist or nationalist foreign policy, tariffs, reduced alliances, domestic-industry priority.",
+      "group": "Movements",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "trump",
+      "label": "Trump",
+      "definition": "Personal/political alignment with Donald Trump: endorsements, staff, votes to shield or advance his agenda.",
+      "group": "Movements",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "tea_party",
+      "label": "Tea Party",
+      "definition": "How much you want that 2009–14 spending/debt, TARP-backlash tradition (Freedom Caucus lineage).",
+      "group": "Movements",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "ron_paul",
+      "label": "Ron Paul movement",
+      "definition": "Ron Paul movement: audit the Fed, non-intervention, hard money, 2008/2012 GOP insurgency.",
+      "group": "Movements",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "occupy",
+      "label": "Occupy Wall Street",
+      "definition": "How much you want that 99%/anti-bank, debt-and-foreclosure protest tradition.",
+      "group": "Movements",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "aoc",
+      "label": "AOC",
+      "definition": "How much you want Squad / Justice Democrat insurgency vs party leadership.",
+      "group": "Movements",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "populist",
+      "label": "Populist",
+      "definition": "Anti-elite, anti-institution rhetoric from either left or right.",
+      "group": "Movements",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "libertarian",
+      "label": "Libertarian",
+      "definition": "Small government, civil liberties, non-intervention, drug/speech decriminalization.",
+      "group": "Movements",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "communism",
+      "label": "Communism",
+      "definition": "Explicit communist program, party membership, or nationalization of major industries. Not 'voted for a tax'.",
+      "group": "Programs",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "socialism",
+      "label": "Socialism",
+      "definition": "Democratic-socialist program: DSA, public ownership, Medicare for All as single-payer, wealth cap.",
+      "group": "Programs",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "green_new_deal",
+      "label": "Green New Deal",
+      "definition": "GND-style climate industrial policy, fossil phase-out, job guarantee tied to decarbonization.",
+      "group": "Programs",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "classical_liberal",
+      "label": "Classical liberal",
+      "definition": "How much you want free speech, markets, limited government, civil liberties (often vs progressive identitarianism).",
+      "group": "Programs",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "neocon",
+      "label": "NeoCon",
+      "definition": "How much you want interventionist foreign policy, democracy-promotion wars, strong NATO/Ukraine aid.",
+      "group": "Programs",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "zionist",
+      "label": "Zionist",
+      "definition": "Pro-Israel policy alignment (AIPAC/CUFI, aid votes, statements). Not ethnicity or religion.",
+      "group": "Programs",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "fdr_era",
+      "label": "FDR-era",
+      "definition": "How much you want this era's policy mix. New Deal: Social Security, public works, wartime industry.",
+      "group": "Eras",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "jfk_era",
+      "label": "JFK-era",
+      "definition": "How much you want this era's policy mix. Cold War liberal: tax cuts, anti-communism, New Frontier.",
+      "group": "Eras",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "lbj_era",
+      "label": "LBJ-era",
+      "definition": "How much you want this era's policy mix. Great Society: Medicare, Voting Rights, War on Poverty.",
+      "group": "Eras",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "nixon_era",
+      "label": "Nixon-era",
+      "definition": "How much you want this era's policy mix. Law-and-order, silent majority, EPA-era mixed government.",
+      "group": "Eras",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "reagan_era",
+      "label": "Reagan-era",
+      "definition": "How much you want this era's policy mix. Tax cuts, anti-communism, evangelicals + free markets.",
+      "group": "Eras",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "clinton_era",
+      "label": "Clinton-era",
+      "definition": "How much you want this era's policy mix. NAFTA, welfare reform, triangulation, Wall Street friendly.",
+      "group": "Eras",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "bush_era",
+      "label": "Bush-era",
+      "definition": "How much you want this era's policy mix. Iraq/Afghanistan, No Child Left Behind, Medicare Part D.",
+      "group": "Eras",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "obama_era",
+      "label": "Obama-era",
+      "definition": "How much you want this era's policy mix. ACA, DACA, stimulus, Iran deal, coalition foreign policy.",
+      "group": "Eras",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "left_lean",
+      "label": "Left-leaning",
+      "definition": "Progressive or social-democratic policy pattern (or legal-left pattern for judges).",
+      "group": "Lean",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "right_lean",
+      "label": "Right-leaning",
+      "definition": "Conservative or nationalist policy pattern (or legal-right pattern for judges).",
+      "group": "Lean",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "originalism",
+      "label": "Originalism",
+      "definition": "Text/history as binding; cites original public meaning; rejects living-constitution.",
+      "group": "Courts",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "living_constitution",
+      "label": "Living constitution",
+      "definition": "Constitution evolves with contemporary values; purposivism; opposite of originalism.",
+      "group": "Courts",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "party_line",
+      "label": "Party-line",
+      "definition": "Rulings that track the appointing party's preferred outcome on politicized questions.",
+      "group": "Courts",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "tds",
+      "label": "Trump-derangement",
+      "definition": "1 = treat Trump like anyone else. 5 = extra skepticism or opposition toward Trump.",
+      "group": "Courts",
+      "low_label": "Treat equally",
+      "high_label": "Extra anti-Trump"
+    },
+    {
+      "id": "constitutional_applicability",
+      "label": "Constitutional applicability",
+      "definition": "Willingness to apply constitutional text as a limit on statute, agency, or emergency power.",
+      "group": "Courts",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "gun_rights",
+      "label": "Gun rights",
+      "definition": "2A expansion vs restriction in rulings, amicus, or public statements.",
+      "group": "Courts",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "adl_aligned",
+      "label": "ADL-aligned",
+      "definition": "Support, citation, or partnership with ADL or similar groups in rulings or public life.",
+      "group": "Courts",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "lgbtq",
+      "label": "LGBTQ",
+      "definition": "1 = tighten limits (sports, youth medicine, religious exemptions). 5 = expand legal recognition and protections. Not the subject's orientation.",
+      "group": "Issues",
+      "low_label": "Restrict",
+      "high_label": "Protect"
+    },
+    {
+      "id": "cannabis",
+      "label": "Cannabis",
+      "definition": "Legalization, decriminalization, or medical-cannabis expansion vs prohibition.",
+      "group": "Issues",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "voter_id",
+      "label": "Voter ID",
+      "definition": "Photo ID or proof-of-citizenship requirements to vote.",
+      "group": "Issues",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "medical_freedom",
+      "label": "Medical freedom",
+      "definition": "Oppose vaccine/mask mandates; support off-label use, informed consent, medical-choice framing.",
+      "group": "Issues",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "remigration",
+      "label": "Remigration",
+      "definition": "Support for returning illegal or recently arrived migrants to origin countries; deportation-first policy.",
+      "group": "Issues",
+      "low_label": "Disagree",
+      "high_label": "Agree"
+    },
+    {
+      "id": "abortion",
+      "label": "Abortion",
+      "definition": "1 = reduce the number of abortions. 5 = increase access to abortion.",
+      "group": "Issues",
+      "low_label": "Fewer abortions",
+      "high_label": "More access"
+    },
+    {
+      "id": "health_insurance",
+      "label": "Health insurance",
+      "definition": "Reduce fraud/waste vs single-payer.",
+      "group": "Issues",
+      "low_label": "Cut fraud",
+      "high_label": "Single-payer"
+    },
+    {
+      "id": "h1b",
+      "label": "H-1B visas",
+      "definition": "Cut vs expand H-1B and skilled guest-worker visas.",
+      "group": "Issues",
+      "low_label": "Reduce",
+      "high_label": "Increase"
+    },
+    {
+      "id": "border",
+      "label": "Border",
+      "definition": "Open immigration vs closed border.",
+      "group": "Issues",
+      "low_label": "Open",
+      "high_label": "Closed"
+    },
+    {
+      "id": "tax_direction",
+      "label": "Tax direction",
+      "definition": "Net fiscal effect. 1 = want cuts; 5 = want raises.",
+      "group": "Measures",
+      "low_label": "Cuts",
+      "high_label": "Raises"
+    },
+    {
+      "id": "restriction_direction",
+      "label": "Restriction direction",
+      "definition": "1 = want fewer laws/limits; 5 = want more restrictions or mandates.",
+      "group": "Measures",
+      "low_label": "Fewer limits",
+      "high_label": "More limits"
+    },
+    {
+      "id": "constitutional_tension",
+      "label": "Constitutional tension",
+      "definition": "1 = reject measures that conflict with or rewrite constitutional rules. 5 = accept that kind of change.",
+      "group": "Measures",
+      "low_label": "Reject rewrite",
+      "high_label": "Accept rewrite"
+    },
+    {
+      "id": "incumbent_class_benefit",
+      "label": "Incumbent/class benefit",
+      "definition": "1 = reject measures that advantage sitting officials, donors, or a narrow industry. 5 = accept that.",
+      "group": "Measures",
+      "low_label": "Oppose perk",
+      "high_label": "Accept perk"
+    }
+  ]
+}

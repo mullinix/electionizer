@@ -501,7 +501,7 @@ h2 {
 
 /* —— Hero / home —— */
 .hero {
-  max-width: 42rem;
+  max-width: 54rem;
   padding-top: 1rem;
 }
 .hero h1 { margin-top: 0; }
@@ -2452,7 +2452,7 @@ a.verdict-cite { display: inline-block; }
 }
 .voter-profile {
   margin-top: 1.1rem;
-  max-width: 42rem;
+  max-width: 54rem;
 }
 .voter-profile-group { margin: 0.7rem 0 0.35rem; }
 .voter-profile-group h3 {
@@ -2464,11 +2464,11 @@ a.verdict-cite { display: inline-block; }
 }
 .likert-row {
   display: grid;
-  grid-template-columns: minmax(6.5rem, 10.5rem) repeat(5, 1.55rem) 1.2rem minmax(5rem, 1fr);
+  grid-template-columns: 1.15rem minmax(5.2rem, 8.2rem) minmax(4.4rem, 6.4rem) repeat(5, 1.4rem) minmax(4.4rem, 6.4rem) minmax(7rem, 1fr);
   align-items: center;
-  gap: 0.15rem 0.2rem;
+  gap: 0.15rem 0.25rem;
   font-size: 0.78rem;
-  padding: 0.18rem 0;
+  padding: 0.22rem 0;
   border-bottom: 1px solid var(--border);
 }
 .likert-label { font-weight: 500; }
@@ -2485,20 +2485,95 @@ a.verdict-cite { display: inline-block; }
 }
 .likert-n input { margin: 0 0.1rem 0 0; accent-color: var(--glow); }
 .likert-clear {
-  padding: 0.05rem 0.3rem;
+  padding: 0.05rem 0.15rem;
   font-size: 0.85rem;
   line-height: 1;
   background: transparent;
   color: var(--text-dim);
   border: 1px solid transparent;
+  box-shadow: none;
 }
-.likert-clear:hover { border-color: var(--border); color: var(--text); }
-.likert-poles { font-size: 0.65rem; }
-@media (max-width: 40rem) {
+.likert-clear:hover { border-color: var(--border); color: var(--text); filter: none; box-shadow: none; }
+.likert-pole {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  line-height: 1.2;
+}
+.likert-pole-lo { text-align: right; }
+.likert-pole-hi { text-align: left; }
+.likert-meaning {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  line-height: 1.25;
+  min-width: 0;
+}
+.vp-field {
+  cursor: text;
+  border-radius: 1px;
+  padding: 0.05rem 0.12rem;
+  min-width: 0;
+}
+.vp-field:hover,
+.vp-field:focus {
+  outline: 1px dashed var(--border);
+  color: var(--text);
+}
+.vp-empty { font-style: italic; opacity: 0.7; }
+.vp-inline {
+  width: 100%;
+  min-width: 4rem;
+  padding: 0.1rem 0.2rem;
+  border: 1px solid var(--glow);
+  background: var(--input-bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: inherit;
+  letter-spacing: 0;
+  text-transform: none;
+}
+.voter-profile-add {
+  margin-top: 0.55rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--border);
+}
+.voter-profile-add input {
+  width: 100%;
+  max-width: 28rem;
+  margin-top: 0.25rem;
+  padding: 0.4rem 0.55rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--input-bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.85rem;
+  outline: none;
+}
+.voter-profile-add input:focus {
+  border-color: var(--glow);
+  box-shadow: 0 0 0 1px var(--glow);
+}
+.voter-profile .row {
+  display: flex;
+  align-items: center;
+}
+.voter-profile-add .row label {
+  flex: 1;
+  min-width: 7rem;
+  text-transform: none;
+  letter-spacing: 0;
+}
+.voter-profile-add .row input { max-width: 10rem; }
+.voter-profile-add button,
+.voter-profile .row button {
+  padding: 0.4rem 0.7rem;
+  font-size: 0.68rem;
+}
+@media (max-width: 48rem) {
   .likert-row {
-    grid-template-columns: minmax(5.5rem, 1fr) repeat(5, 1.4rem) 1.1rem;
+    grid-template-columns: 1.15rem minmax(4.4rem, 1fr) minmax(3.4rem, 5.2rem) repeat(5, 1.25rem) minmax(3.4rem, 5.2rem);
   }
-  .likert-poles { display: none; }
+  .likert-meaning { grid-column: 2 / -1; }
 }
 
 /* —— Ballot fit + scorecard —— */

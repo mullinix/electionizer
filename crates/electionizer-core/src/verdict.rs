@@ -254,6 +254,10 @@ pub struct PackedContext {
 pub struct VoterPref {
     pub id: String,
     pub likert: u8,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub label: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub definition: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -341,57 +345,86 @@ const PROFILE_AXES: &[(&str, &str, &str, &str, &str, &str)] = &[
     ("maga", "MAGA", "Make America Great Again movement: America-first rhetoric, Trump loyalty, anti-establishment posture, border/immigration hard line.", "Movements", "Disagree", "Agree"),
     ("america_first", "America First", "Non-interventionist or nationalist foreign policy, tariffs, reduced alliances, domestic-industry priority.", "Movements", "Disagree", "Agree"),
     ("trump", "Trump", "Personal/political alignment with Donald Trump: endorsements, staff, votes to shield or advance his agenda.", "Movements", "Disagree", "Agree"),
-    ("tea_party", "Tea Party", "2009–2014 Tea Party: spending/debt opposition, TARP backlash, town halls, House Freedom Caucus lineage.", "Movements", "Disagree", "Agree"),
+    ("tea_party", "Tea Party", "How much you want that 2009–14 spending/debt, TARP-backlash tradition (Freedom Caucus lineage).", "Movements", "Disagree", "Agree"),
     ("ron_paul", "Ron Paul movement", "Ron Paul movement: audit the Fed, non-intervention, hard money, 2008/2012 GOP insurgency.", "Movements", "Disagree", "Agree"),
-    ("occupy", "Occupy Wall Street", "Occupy Wall Street: 99%, anti-bank, debt/foreclosure, camp protests; precursor to left populism.", "Movements", "Disagree", "Agree"),
-    ("aoc", "AOC", "Squad / AOC-aligned: justice Democrats, abolish-ICE adjacent, progressive insurgency vs party leadership.", "Movements", "Disagree", "Agree"),
+    ("occupy", "Occupy Wall Street", "How much you want that 99%/anti-bank, debt-and-foreclosure protest tradition.", "Movements", "Disagree", "Agree"),
+    ("aoc", "AOC", "How much you want Squad / Justice Democrat insurgency vs party leadership.", "Movements", "Disagree", "Agree"),
     ("populist", "Populist", "Anti-elite, anti-institution rhetoric from either left or right.", "Movements", "Disagree", "Agree"),
     ("libertarian", "Libertarian", "Small government, civil liberties, non-intervention, drug/speech decriminalization.", "Movements", "Disagree", "Agree"),
     ("communism", "Communism", "Explicit communist program, party membership, or nationalization of major industries. Not 'voted for a tax'.", "Programs", "Disagree", "Agree"),
     ("socialism", "Socialism", "Democratic-socialist program: DSA, public ownership, Medicare for All as single-payer, wealth cap.", "Programs", "Disagree", "Agree"),
     ("green_new_deal", "Green New Deal", "GND-style climate industrial policy, fossil phase-out, job guarantee tied to decarbonization.", "Programs", "Disagree", "Agree"),
-    ("classical_liberal", "Classical liberal", "Free speech, markets, limited government, civil liberties; often at odds with modern progressive identitarianism.", "Programs", "Disagree", "Agree"),
-    ("neocon", "NeoCon", "Interventionist foreign policy, democracy-promotion wars, strong NATO/Ukraine aid, Bush/Cheney lineage.", "Programs", "Disagree", "Agree"),
+    ("classical_liberal", "Classical liberal", "How much you want free speech, markets, limited government, civil liberties (often vs progressive identitarianism).", "Programs", "Disagree", "Agree"),
+    ("neocon", "NeoCon", "How much you want interventionist foreign policy, democracy-promotion wars, strong NATO/Ukraine aid.", "Programs", "Disagree", "Agree"),
     ("zionist", "Zionist", "Pro-Israel policy alignment (AIPAC/CUFI, aid votes, statements). Not ethnicity or religion.", "Programs", "Disagree", "Agree"),
-    ("fdr_era", "FDR-era", "1933–1945 New Deal: Social Security, public works, wartime industrial policy, four-term Democratic coalition.", "Eras", "Disagree", "Agree"),
-    ("jfk_era", "JFK-era", "Cold War liberal: tax cuts + anti-communism + civil rights beginnings, New Frontier growth.", "Eras", "Disagree", "Agree"),
-    ("lbj_era", "LBJ-era", "Great Society: Medicare/Medicaid, Voting Rights, War on Poverty, expansive federal programs.", "Eras", "Disagree", "Agree"),
-    ("nixon_era", "Nixon-era", "Law-and-order, silent-majority, EPA-era mixed government, realpolitik foreign policy.", "Eras", "Disagree", "Agree"),
-    ("reagan_era", "Reagan-era", "Fusionist conservatism: tax cuts, anti-communism, fusion of evangelicals and free markets.", "Eras", "Disagree", "Agree"),
-    ("clinton_era", "Clinton-era", "1990s New Democrat: NAFTA, welfare reform, triangulation, tough-on-crime, Wall Street friendly.", "Eras", "Disagree", "Agree"),
-    ("bush_era", "Bush-era", "2001–2009 GOP: compassionate conservatism, Iraq/Afghanistan, No Child Left Behind, Medicare Part D.", "Eras", "Disagree", "Agree"),
-    ("obama_era", "Obama-era", "2009–2017: ACA, DACA, stimulus, Iran deal, coalition foreign policy, identity-inclusive rhetoric.", "Eras", "Disagree", "Agree"),
+    ("fdr_era", "FDR-era", "How much you want this era's policy mix. New Deal: Social Security, public works, wartime industry.", "Eras", "Disagree", "Agree"),
+    ("jfk_era", "JFK-era", "How much you want this era's policy mix. Cold War liberal: tax cuts, anti-communism, New Frontier.", "Eras", "Disagree", "Agree"),
+    ("lbj_era", "LBJ-era", "How much you want this era's policy mix. Great Society: Medicare, Voting Rights, War on Poverty.", "Eras", "Disagree", "Agree"),
+    ("nixon_era", "Nixon-era", "How much you want this era's policy mix. Law-and-order, silent majority, EPA-era mixed government.", "Eras", "Disagree", "Agree"),
+    ("reagan_era", "Reagan-era", "How much you want this era's policy mix. Tax cuts, anti-communism, evangelicals + free markets.", "Eras", "Disagree", "Agree"),
+    ("clinton_era", "Clinton-era", "How much you want this era's policy mix. NAFTA, welfare reform, triangulation, Wall Street friendly.", "Eras", "Disagree", "Agree"),
+    ("bush_era", "Bush-era", "How much you want this era's policy mix. Iraq/Afghanistan, No Child Left Behind, Medicare Part D.", "Eras", "Disagree", "Agree"),
+    ("obama_era", "Obama-era", "How much you want this era's policy mix. ACA, DACA, stimulus, Iran deal, coalition foreign policy.", "Eras", "Disagree", "Agree"),
     ("left_lean", "Left-leaning", "Progressive or social-democratic policy pattern (or legal-left pattern for judges).", "Lean", "Disagree", "Agree"),
     ("right_lean", "Right-leaning", "Conservative or nationalist policy pattern (or legal-right pattern for judges).", "Lean", "Disagree", "Agree"),
     ("originalism", "Originalism", "Text/history as binding; cites original public meaning; rejects living-constitution.", "Courts", "Disagree", "Agree"),
     ("living_constitution", "Living constitution", "Constitution evolves with contemporary values; purposivism; opposite of originalism.", "Courts", "Disagree", "Agree"),
     ("party_line", "Party-line", "Rulings that track the appointing party's preferred outcome on politicized questions.", "Courts", "Disagree", "Agree"),
-    ("tds", "Trump-derangement", "Trump treated unlike similarly situated parties. Requires a compared case or quote.", "Courts", "Disagree", "Agree"),
+    ("tds", "Trump-derangement", "1 = treat Trump like anyone else. 5 = extra skepticism or opposition toward Trump.", "Courts", "Treat equally", "Extra anti-Trump"),
     ("constitutional_applicability", "Constitutional applicability", "Willingness to apply constitutional text as a limit on statute, agency, or emergency power.", "Courts", "Disagree", "Agree"),
     ("gun_rights", "Gun rights", "2A expansion vs restriction in rulings, amicus, or public statements.", "Courts", "Disagree", "Agree"),
     ("adl_aligned", "ADL-aligned", "Support, citation, or partnership with ADL or similar groups in rulings or public life.", "Courts", "Disagree", "Agree"),
-    ("lgbtq", "LGBTQ", "Policy record on LGBTQ rights (marriage, sports, youth medicine, religious liberty). Not the subject's orientation.", "Issues", "Disagree", "Agree"),
+    ("lgbtq", "LGBTQ", "1 = tighten limits (sports, youth medicine, religious exemptions). 5 = expand legal recognition and protections. Not the subject's orientation.", "Issues", "Restrict", "Protect"),
     ("cannabis", "Cannabis", "Legalization, decriminalization, or medical-cannabis expansion vs prohibition.", "Issues", "Disagree", "Agree"),
     ("voter_id", "Voter ID", "Photo ID or proof-of-citizenship requirements to vote.", "Issues", "Disagree", "Agree"),
     ("medical_freedom", "Medical freedom", "Oppose vaccine/mask mandates; support off-label use, informed consent, medical-choice framing.", "Issues", "Disagree", "Agree"),
     ("remigration", "Remigration", "Support for returning illegal or recently arrived migrants to origin countries; deportation-first policy.", "Issues", "Disagree", "Agree"),
-    ("abortion", "Abortion", "Reduce abortions vs increase access.", "Issues", "Reduce", "Access"),
+    ("abortion", "Abortion", "1 = reduce the number of abortions. 5 = increase access to abortion.", "Issues", "Fewer abortions", "More access"),
     ("health_insurance", "Health insurance", "Reduce fraud/waste vs single-payer.", "Issues", "Cut fraud", "Single-payer"),
     ("h1b", "H-1B visas", "Cut vs expand H-1B and skilled guest-worker visas.", "Issues", "Reduce", "Increase"),
     ("border", "Border", "Open immigration vs closed border.", "Issues", "Open", "Closed"),
     ("tax_direction", "Tax direction", "Net fiscal effect. 1 = want cuts; 5 = want raises.", "Measures", "Cuts", "Raises"),
     ("restriction_direction", "Restriction direction", "1 = want fewer laws/limits; 5 = want more restrictions or mandates.", "Measures", "Fewer limits", "More limits"),
-    ("constitutional_tension", "Constitutional tension", "How much you accept a measure that conflicts with or rewrites constitutional rules.", "Measures", "Oppose", "Favor"),
-    ("incumbent_class_benefit", "Incumbent/class benefit", "How much you accept a measure that advantages sitting officials, donors, or a narrow industry.", "Measures", "Oppose", "Favor"),
+    ("constitutional_tension", "Constitutional tension", "1 = reject measures that conflict with or rewrite constitutional rules. 5 = accept that kind of change.", "Measures", "Reject rewrite", "Accept rewrite"),
+    ("incumbent_class_benefit", "Incumbent/class benefit", "1 = reject measures that advantage sitting officials, donors, or a narrow industry. 5 = accept that.", "Measures", "Oppose perk", "Accept perk"),
 ];
 
-fn prefs_from_value(v: Option<&Value>) -> Vec<VoterPref> {
+fn catalog_meta(catalog: Option<&Value>) -> HashMap<String, (String, String)> {
+    let mut map = HashMap::new();
+    let Some(rows) = catalog.and_then(|c| c.as_array()) else {
+        return map;
+    };
+    for row in rows {
+        let id = js_str(row, &["id"]).trim().to_ascii_lowercase();
+        if id.is_empty() {
+            continue;
+        }
+        let label = js_str(row, &["label"]);
+        let definition = js_str(row, &["definition"]);
+        if label.is_empty() && definition.is_empty() {
+            continue;
+        }
+        map.insert(id, (label, definition));
+    }
+    map
+}
+
+fn prefs_from_value(v: Option<&Value>, catalog: Option<&Value>) -> Vec<VoterPref> {
     let Some(v) = v else {
         return Vec::new();
     };
+    let meta = catalog_meta(catalog);
     let mut out: Vec<VoterPref> = parse_voter_profile(&v.to_string())
         .into_iter()
-        .map(|(id, likert)| VoterPref { id, likert })
+        .map(|(id, likert)| {
+            let (label, definition) = meta.get(&id).cloned().unwrap_or_default();
+            VoterPref {
+                id,
+                likert,
+                label: nonempty(label),
+                definition: nonempty(definition),
+            }
+        })
         .collect();
     out.sort_by(|a, b| a.id.cmp(&b.id));
     out
@@ -719,7 +752,10 @@ pub fn pack_verdict_context(subject_json: &str, enrich_json: &str) -> Option<Pac
         ctx.office = "Ballot measure".into();
     }
 
-    ctx.voter_profile = prefs_from_value(enrich.get("voter_profile"));
+    ctx.voter_profile = prefs_from_value(
+        enrich.get("voter_profile"),
+        enrich.get("voter_profile_catalog"),
+    );
 
     let dossier = enrich.get("dossier");
     let scrutiny = enrich.get("scrutiny");
@@ -885,7 +921,7 @@ Signed axes ({signed}) are -100 to +100.\n\
 Every scored axis needs at least one cite: a packed cite id (e0, v3, n1, …) or an https URL you actually retrieved.\n\
 If you cannot cite, set score to null.\n\
 Give an overall verdict and per-axis verdict lines. Be direct.\n\
-If voter_profile is present (axis id → 1-5 Likert: 1 strongly disagree, 5 strongly agree; some axes use custom poles), write the overall headline and verdict relative to that voter's likes and dislikes. Axis scores stay alignment (how much the subject is that thing) — do not invert numbers; the client remaps fit.\n\
+If voter_profile is present (axis id → 1-5 Likert: 1 strongly disagree, 5 strongly agree; some axes use custom poles), write the overall headline and verdict relative to that voter's likes and dislikes. Extra entries may include a voter-supplied label and definition — treat those as issues they added; do not add them as scored rubric axes. Axis scores stay alignment (how much the subject is that thing) — do not invert numbers; the client remaps fit.\n\
 Do not invent family, citizenship, assets, sexual orientation, or quotations.\n\
 News and X posts are reported-by, trust news. Endorsements found via search are trust news, not filing.\n\
 Return one JSON object (no markdown). Types: headline string; overall object; \
@@ -2423,6 +2459,24 @@ mod tests {
         let body = verdict_request_body("xai", "grok-4.6", &packed, true).unwrap();
         assert!(body.contains("voter_profile"));
         assert!(body.contains("do not invert"));
+    }
+
+    #[test]
+    fn packer_attaches_custom_profile_labels() {
+        let enrich = r#"{"voter_profile":{"school_choice":5},"voter_profile_catalog":[{"id":"school_choice","label":"School choice","definition":"Vouchers and ESA."}]}"#;
+        let ctx = pack_verdict_context(
+            r#"{"name":"Byron Donalds","party":"Republican","office":"U.S. House"}"#,
+            enrich,
+        )
+        .unwrap();
+        let row = ctx
+            .voter_profile
+            .iter()
+            .find(|p| p.id == "school_choice")
+            .unwrap();
+        assert_eq!(row.likert, 5);
+        assert_eq!(row.label.as_deref(), Some("School choice"));
+        assert_eq!(row.definition.as_deref(), Some("Vouchers and ESA."));
     }
 
     #[test]

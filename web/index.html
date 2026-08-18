@@ -91,17 +91,39 @@
           <p class="meta muted" style="margin-top:0.35rem">Florida closed primary: your party ballot + every nonpartisan race. Stored in this browser only.</p>
          </details>
        </form>
-       <details class="voter-profile street-details" id="voter-profile">
+        <details class="voter-profile street-details" id="voter-profile">
          <summary class="meta" id="voter-profile-summary">Voter profile <span class="muted">(optional · 1–5 · this browser)</span></summary>
-          <p class="meta muted" style="margin-top:0.4rem">How much do you agree with each? Used to remap verdict scores into a personal fit. 1 = strongly disagree, 5 = strongly agree; some rows use custom poles. Not sent to any server except inside your optional AI prompt.</p>
+          <p class="meta muted" style="margin-top:0.4rem">1 is the left pole, 5 is the right. Click a name, pole, or “what this means” to edit. × removes the row (built-ins can be restored). Ratings and edits stay in this browser. Export shares the list only — not your answers. Not sent to any server except inside your optional AI prompt.</p>
          <div class="likert-legend meta muted" aria-hidden="true">
            <span>1 disagree</span>
            <span class="fit-legend"></span>
            <span>5 agree</span>
          </div>
          <div id="voter-profile-axes"></div>
+         <form id="voter-profile-add" class="voter-profile-add">
+           <p class="meta" style="margin:0.7rem 0 0.35rem">Add an entry</p>
+           <label class="sr-only" for="vp-add-label">Issue label</label>
+           <input id="vp-add-label" name="vp_label" type="text" maxlength="80" required
+                  placeholder="e.g. School choice" autocomplete="off">
+           <label class="sr-only" for="vp-add-def">What it means</label>
+           <input id="vp-add-def" name="vp_def" type="text" maxlength="400"
+                  placeholder="What this means (optional)" autocomplete="off">
+           <div class="row" style="gap:0.5rem; flex-wrap:wrap; margin-top:0.35rem">
+             <label class="meta" for="vp-add-low">1 =
+               <input id="vp-add-low" name="vp_low" type="text" maxlength="24" placeholder="Disagree" autocomplete="off">
+             </label>
+             <label class="meta" for="vp-add-high">5 =
+               <input id="vp-add-high" name="vp_high" type="text" maxlength="24" placeholder="Agree" autocomplete="off">
+             </label>
+             <button type="submit" class="ghost">Add</button>
+           </div>
+         </form>
          <p class="row" style="margin-top:0.6rem; gap:0.5rem; flex-wrap:wrap;">
-           <button type="button" class="secondary" id="voter-profile-clear">Clear profile</button>
+           <button type="button" class="ghost" id="voter-profile-export">Export list</button>
+           <button type="button" class="ghost" id="voter-profile-import">Import list</button>
+           <input id="voter-profile-file" type="file" accept=".json,application/json" hidden>
+           <button type="button" class="ghost" id="voter-profile-restore" hidden>Restore hidden</button>
+           <button type="button" class="secondary" id="voter-profile-clear">Clear ratings</button>
            <span class="meta muted" id="voter-profile-status"></span>
          </p>
        </details>
@@ -269,8 +291,9 @@
         <p class="meta">After a ballot loads, Grok scores every candidate and measure (early pass:
           identity + live web/X search). The list sorts by personal fit; <strong>Scorecard</strong>
           tabulates those scores by party for each office. Click a name for the full verdict.
-          Home <strong>voter profile</strong> (1–5 Likert) remaps scores (dislike 80 → 20) on a
-          blue→gold heatmap. Key stays in this browser. Needs Wisp. Cached until you hit
+          Home <strong>voter profile</strong> (1–5 Likert, add-your-own entries, export/import the
+          list without ratings) remaps scores (dislike 80 → 20) on a
+          blue→gold heatmap. Profile stays in this browser. Key stays in this browser. Needs Wisp. Cached until you hit
           <strong>refresh data</strong> / <strong>refresh score</strong> on the ballot, a race, or a name. L6 contrast notes
           under Scrutiny still run separately.</p>
         <label for="llm-provider">Provider</label>

@@ -38,6 +38,8 @@ export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$ROOT/target}"
 # Point wasm-pack at rustup cargo when PATH has Homebrew first
 export PATH="$(dirname "$CARGO"):$PATH"
 
+cp "$ROOT/voter-profile-defaults.json" "$ROOT/web/voter-profile-defaults.json"
+
 wasm-pack build crates/electionizer-wasm \
   --target web \
   --out-dir "$ROOT/web/pkg" \

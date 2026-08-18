@@ -1613,7 +1613,7 @@ async function main() {
     sys.textContent = "ONLINE";
     syncModeUi();
     status.textContent = statusMessage();
-    mountVoterProfile(document, {
+    await mountVoterProfile(document, {
       onChange: () => {
         reapplyVoterFit();
         if (lastReport) refreshBallotList();

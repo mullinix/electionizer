@@ -1,5 +1,19 @@
 import { apply_voter_profile_js, voter_profile_axes_js } from "./pkg/electionizer_wasm.js";
-import { getVoterProfile, setVoterPref, clearVoterProfile } from "./settings.js";
+import {
+  getVoterProfile,
+  setVoterPref,
+  clearVoterProfile,
+  getCustomProfileAxes,
+  addCustomProfileAxis,
+  exportVoterProfileCatalog,
+  importVoterProfileCatalog,
+  seedVoterProfileFromDefaults,
+  resolveProfileAxes,
+  hideProfileAxis,
+  restoreHiddenProfileAxes,
+  getHiddenProfileIds,
+  updateProfileAxisFields,
+} from "./settings.js";
 
 function esc(s) {
   return String(s ?? "")
@@ -137,21 +151,53 @@ function profileAxisList() {
 
 function profileSummaryText(prefs) {
   const n = Object.keys(prefs || {}).length;
-  if (!n) return `Voter profile <span class="muted">(optional · 1–5 · this browser)</span>`;
-  return `Voter profile <span class="muted">· ${n} rated · this browser</span>`;
+  const extra = getCustomProfileAxes().length;
+  const hidden = getHiddenProfileIds().size;
+  const bits = [];
+  if (n) bits.push(`${n} rated`);
+  if (extra) bits.push(`${extra} added`);
+  if (hidden) bits.push(`${hidden} hidden`);
+  if (!bits.length) return `Voter profile <span class="muted">(optional · 1–5 · this browser)</span>`;
+  return `Voter profile <span class="muted">· ${bits.join(" · ")} · this browser</span>`;
 }
 
-export function mountVoterProfile(root, opts = {}) {
-  const host = (root || document).querySelector("#voter-profile-axes");
-  const box = (root || document).querySelector("#voter-profile");
-  const sum = (root || document).querySelector("#voter-profile-summary");
+function fieldSpan(axis, field, text, cls) {
+  const raw = text || "";
+  const empty = !String(raw).trim();
+  const shown = empty ? (field === "definition" ? "what this means" : "…") : raw;
+  return `<span class="vp-field ${cls}${empty ? " vp-empty" : ""}" data-field="${esc(field)}" data-axis="${esc(
+    axis.id
+  )}" data-value="${esc(raw)}" tabindex="0" title="Click to edit">${esc(shown)}</span>`;
+}
+
+function downloadProfileCatalog(doc, axes) {
+  const payload = exportVoterProfileCatalog(axes);
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const a = (doc || document).createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "electionizer-voter-profile.json";
+  a.rel = "noopener";
+  (doc || document).body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+export async function mountVoterProfile(root, opts = {}) {
+  const doc = root || document;
+  const host = doc.querySelector("#voter-profile-axes");
+  const box = doc.querySelector("#voter-profile");
+  const sum = doc.querySelector("#voter-profile-summary");
   if (!host) return;
-  const axes = profileAxisList();
-  if (!axes.length) return;
+  const builtin = profileAxisList();
+  const builtinIds = new Set(builtin.map((a) => String(a.id || "").toLowerCase()));
+  await seedVoterProfileFromDefaults([...builtinIds]);
+  const axes = resolveProfileAxes(builtin);
   const prefs = getVoterProfile();
+  const hiddenN = getHiddenProfileIds().size;
   const groups = [];
   for (const a of axes) {
-    const g = a.group || "Other";
+    const g = a.group || (a.custom ? "Custom" : "Other");
     let bucket = groups.find((x) => x.name === g);
     if (!bucket) {
       bucket = { name: g, rows: [] };
@@ -172,16 +218,15 @@ export function mountVoterProfile(root, opts = {}) {
                 }><span>${n}</span></label>`
             )
             .join("");
-          const poles = `<span class="likert-poles muted">${esc(a.low_label || "Disagree")} · ${esc(
-            a.high_label || "Agree"
-          )}</span>`;
-          return `<div class="likert-row" data-axis="${esc(a.id)}" title="${esc(a.definition || "")}">
-            <span class="likert-label">${esc(a.label)}</span>
-            ${radios}
-            <button type="button" class="likert-clear" data-clear="${esc(a.id)}" aria-label="Clear ${esc(
+          return `<div class="likert-row${a.custom ? " likert-custom" : ""}" data-axis="${esc(a.id)}">
+            <button type="button" class="likert-clear" data-remove="${esc(a.id)}" aria-label="Remove ${esc(
               a.label
             )}">×</button>
-            ${poles}
+            ${fieldSpan(a, "label", a.label, "likert-label")}
+            ${fieldSpan(a, "low_label", a.low_label || "Disagree", "likert-pole likert-pole-lo")}
+            ${radios}
+            ${fieldSpan(a, "high_label", a.high_label || "Agree", "likert-pole likert-pole-hi")}
+            ${fieldSpan(a, "definition", a.definition || "", "likert-meaning")}
           </div>`;
         })
         .join("");
@@ -189,14 +234,71 @@ export function mountVoterProfile(root, opts = {}) {
     })
     .join("");
   if (sum) sum.innerHTML = profileSummaryText(prefs);
-  if (box && Object.keys(prefs).length) box.open = true;
+  if (box && (Object.keys(prefs).length || getCustomProfileAxes().length || hiddenN)) box.open = true;
 
-  const onChange = () => {
+  const setStatus = (msg) => {
+    const st = doc.querySelector("#voter-profile-status");
+    if (st) st.textContent = msg || "";
+  };
+
+  const onChange = (msg) => {
     if (typeof opts.onChange === "function") opts.onChange(getVoterProfile());
-    const s = (root || document).querySelector("#voter-profile-summary");
+    const s = doc.querySelector("#voter-profile-summary");
     if (s) s.innerHTML = profileSummaryText(getVoterProfile());
-    const st = (root || document).querySelector("#voter-profile-status");
-    if (st) st.textContent = "Saved in this browser.";
+    setStatus(msg || "Saved in this browser.");
+  };
+
+  const remount = (msg) => {
+    mountVoterProfile(doc, opts);
+    if (msg) setStatus(msg);
+  };
+
+  const beginEdit = (el) => {
+    if (!el || el.querySelector("input")) return;
+    const field = el.getAttribute("data-field");
+    const id = el.getAttribute("data-axis");
+    const prev = el.getAttribute("data-value") || "";
+    const max = field === "definition" ? 400 : field === "label" ? 80 : 24;
+    const input = doc.createElement("input");
+    input.type = "text";
+    input.className = "vp-inline";
+    input.value = prev;
+    input.maxLength = max;
+    input.setAttribute("aria-label", field === "definition" ? "What this means" : field.replace("_", " "));
+    el.textContent = "";
+    el.appendChild(input);
+    input.focus();
+    input.select();
+    let done = false;
+    const finish = (ok) => {
+      if (done) return;
+      done = true;
+      if (!ok) {
+        remount();
+        return;
+      }
+      const v = input.value.trim();
+      if (field === "label" && !v) {
+        remount("Need a label.");
+        return;
+      }
+      if (v === prev) {
+        remount();
+        return;
+      }
+      updateProfileAxisFields(id, { [field]: v }, [...builtinIds]);
+      remount("Saved in this browser.");
+    };
+    input.onkeydown = (ev) => {
+      if (ev.key === "Enter") {
+        ev.preventDefault();
+        finish(true);
+      } else if (ev.key === "Escape") {
+        ev.preventDefault();
+        finish(false);
+      }
+    };
+    input.onblur = () => finish(true);
   };
 
   host.onchange = (ev) => {
@@ -207,24 +309,106 @@ export function mountVoterProfile(root, opts = {}) {
     onChange();
   };
   host.onclick = (ev) => {
-    const btn = ev.target && ev.target.closest && ev.target.closest("[data-clear]");
-    if (!btn) return;
-    ev.preventDefault();
-    const id = btn.getAttribute("data-clear");
-    setVoterPref(id, 0);
-    host.querySelectorAll(`input[name="vp-${id}"]`).forEach((el) => {
-      el.checked = false;
-    });
-    onChange();
+    if (ev.target && ev.target.closest && ev.target.closest(".vp-inline")) return;
+    const drop = ev.target && ev.target.closest && ev.target.closest("[data-remove]");
+    if (drop) {
+      ev.preventDefault();
+      hideProfileAxis(drop.getAttribute("data-remove"), [...builtinIds]);
+      remount("Removed. Saved in this browser.");
+      if (typeof opts.onChange === "function") opts.onChange(getVoterProfile());
+      return;
+    }
+    const field = ev.target && ev.target.closest && ev.target.closest(".vp-field");
+    if (field) {
+      ev.preventDefault();
+      beginEdit(field);
+    }
   };
-  const wipe = (root || document).querySelector("#voter-profile-clear");
+  host.onkeydown = (ev) => {
+    if (ev.key !== "Enter" && ev.key !== " ") return;
+    const field = ev.target && ev.target.closest && ev.target.closest(".vp-field");
+    if (!field || field.querySelector("input")) return;
+    ev.preventDefault();
+    beginEdit(field);
+  };
+  const wipe = doc.querySelector("#voter-profile-clear");
   if (wipe) {
     wipe.onclick = () => {
       clearVoterProfile();
       host.querySelectorAll("input[type=radio]").forEach((el) => {
         el.checked = false;
       });
-      onChange();
+      onChange("Ratings cleared. List kept.");
+    };
+  }
+  const restore = doc.querySelector("#voter-profile-restore");
+  if (restore) {
+    restore.hidden = hiddenN === 0;
+    restore.onclick = () => {
+      restoreHiddenProfileAxes();
+      remount("Restored hidden built-ins.");
+      if (typeof opts.onChange === "function") opts.onChange(getVoterProfile());
+    };
+  }
+  const addForm = doc.querySelector("#voter-profile-add");
+  if (addForm) {
+    addForm.onsubmit = (ev) => {
+      ev.preventDefault();
+      const label = (doc.querySelector("#vp-add-label") || {}).value;
+      const axis = addCustomProfileAxis(
+        {
+          label,
+          definition: (doc.querySelector("#vp-add-def") || {}).value,
+          low_label: (doc.querySelector("#vp-add-low") || {}).value || "Disagree",
+          high_label: (doc.querySelector("#vp-add-high") || {}).value || "Agree",
+        },
+        [...builtinIds]
+      );
+      if (!axis) {
+        setStatus("Need a label to add an entry.");
+        return;
+      }
+      addForm.reset();
+      remount(
+        axis.restored
+          ? `Restored ${axis.label}. Saved in this browser.`
+          : `Added ${axis.label}. Saved in this browser.`
+      );
+      if (typeof opts.onChange === "function") opts.onChange(getVoterProfile());
+    };
+  }
+  const exp = doc.querySelector("#voter-profile-export");
+  if (exp) {
+    exp.onclick = () => {
+      downloadProfileCatalog(document, axes);
+      setStatus("Downloaded list (no ratings).");
+    };
+  }
+  const file = doc.querySelector("#voter-profile-file");
+  const imp = doc.querySelector("#voter-profile-import");
+  if (imp && file) {
+    imp.onclick = () => file.click();
+    file.onchange = async () => {
+      const f = file.files && file.files[0];
+      file.value = "";
+      if (!f) return;
+      let text = "";
+      try {
+        text = await f.text();
+      } catch {
+        setStatus("Could not read file.");
+        return;
+      }
+      const result = importVoterProfileCatalog(text, [...builtinIds]);
+      if (result.error) {
+        setStatus(result.error);
+        return;
+      }
+      const bits = [];
+      if (result.added) bits.push(`${result.added} added`);
+      if (result.updated) bits.push(`${result.updated} updated`);
+      remount(bits.length ? `Imported (${bits.join(", ")}). Saved in this browser.` : "Nothing new to add.");
+      if (typeof opts.onChange === "function") opts.onChange(getVoterProfile());
     };
   }
 }

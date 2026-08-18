@@ -1,5 +1,5 @@
 /* electionizer static shell + fixture offline cache */
-const CACHE = "electionizer-shell-v47";
+const CACHE = "electionizer-shell-v50";
 const PRECACHE = [
   "./",
   "./index.html",
@@ -14,6 +14,7 @@ const PRECACHE = [
   "./render.js",
   "./timeline.js",
   "./settings.js",
+  "./voter-profile-defaults.json",
   "./state.js",
   "./state-urls.js",
   "./curl-transport.js",

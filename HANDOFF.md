@@ -91,7 +91,7 @@ Finance (A), affiliation (B), state ballots FL/AZ/NC/MD (C), Civic VIP (D), meas
 
 **Timeline (current):** `web/timeline.js` — vertical lanes (votes/decisions · campaign $ · personal disclosure); Gaussian σ default 4w (slider); cursor scrub + pin; wheel/± zoom + shift-drag pan; itemized Sched A lines + dated tops + eFD/House filing dates. GovTrack list cap **500**. Judge/CL: votes lane labeled **Decisions**.
 
-**Privacy:** FL smoke ZIPs = `33334` (Broward) and `32901` (Brevard / Melbourne). Precinct+party and voter-profile Likert stay in the user’s browser.
+**Privacy:** FL smoke ZIPs = `33334` (Broward) and `32901` (Brevard / Melbourne). Precinct+party and voter-profile Likert stay in the user’s browser. Profile export is the axis list only (no ratings).
 
 ---
 
@@ -578,5 +578,8 @@ Shipped. SW v45. Hard-refresh, then Brevard (`32901`): BCC, port, county judge, 
     | **Score pool** | M-early queue runs 1–8 parallel (default 3); 429 backoff; profile no longer busts verdict cache. SW v44. |
     | **FL SOE locals** | VF `candidate_pr.php` at ballot-build (`fl:soe`); precinct sample-ballot PDF filter (`fl:sample_ballot`). BCC / port / county judge / school board. SW v45. |
     | **Forever cache + reload** | IndexedDB persists until **refresh data** / **refresh score** on the ballot, a race, or a name (Civic VIP still 12h). SW v47. |
+    | **Voter profile share** | Add-your-own entries; export/import axis list (no ratings); ratings + custom catalog persist in localStorage. Custom labels packed for AI. SW v48. |
+    | **Voter profile edit** | Click-to-edit label/poles/meaning on every row; × left of title hides row; poles left/right of 1–5; meaning on the right. TDS/abortion/LGBTQ/era/measure copy clarified. SW v49. |
+    | **Voter profile defaults** | Shipped catalog `voter-profile-defaults.json` (repo root; copied to `web/` on wasm build). Same JSON as export/import. Empty localStorage seeds via `importVoterProfileCatalog`. Later default-only ids fill in without overwriting edits. SW v50. |
 
-**Next:** Hard-refresh SW v47. Refresh data/score on the ballot header, a race, or a name. Civic VIP still 12h. K leftovers + OCR/FD stay backlog.
+**Next:** Hard-refresh SW v50. Refresh data/score on the ballot header, a race, or a name. Civic VIP still 12h. K leftovers + OCR/FD stay backlog.
