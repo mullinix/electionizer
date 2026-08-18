@@ -1,5 +1,5 @@
 /* electionizer static shell + fixture offline cache */
-const CACHE = "electionizer-shell-v50";
+const CACHE = "electionizer-shell-v52";
 const PRECACHE = [
   "./",
   "./index.html",

@@ -13,7 +13,7 @@ import {
   getLlmModel,
   hasLlmKey,
   getVoterProfile,
-  getCustomProfileAxes,
+  profileCatalogForPack,
 } from "./settings.js";
 import {
   curlCloseSession,
@@ -206,6 +206,7 @@ import {
   parse_fl_jqc_posts_json_js,
   parse_fl_jqc_news_html_js,
   merge_record_hits_js,
+  voter_profile_axes_js,
   pack_verdict_context_js,
   pack_verdict_context_json_js,
   packed_fingerprint_js,
@@ -601,11 +602,23 @@ function subjectFromCandidate(c) {
   };
 }
 
+function builtinProfileAxes() {
+  try {
+    const raw = voter_profile_axes_js();
+    if (Array.isArray(raw)) return raw;
+    if (raw instanceof Map) return [...raw.values()];
+    if (raw && typeof raw === "object") return Object.values(raw);
+  } catch {
+    /* wasm not ready */
+  }
+  return [];
+}
+
 function packedJsonFrom(subject, enrich, opts = {}) {
   const merged = { ...(enrich || {}) };
   if (opts.profile !== false) {
     merged.voter_profile = getVoterProfile();
-    const catalog = getCustomProfileAxes();
+    const catalog = profileCatalogForPack(builtinProfileAxes());
     if (catalog.length) merged.voter_profile_catalog = catalog;
     else delete merged.voter_profile_catalog;
   } else {
@@ -838,6 +851,7 @@ export async function runVerdictPass(c, enrich, opts = {}) {
   }
   if (!url || !model) return { skip: "unknown provider" };
   const subject = opts.subject || subjectFromCandidate(c);
+  const withSearch = opts.withSearch !== false && opts.pass !== "preview";
   const packedJson = packedJsonFrom(subject, enrich);
   if (!packedJson) return { skip: "could not pack subject" };
   const cachePacked = packedJsonFrom(subject, enrich, { profile: false });
@@ -858,13 +872,13 @@ export async function runVerdictPass(c, enrich, opts = {}) {
   ) {
     return { card: enrich.verdict, skip: "unchanged", hash };
   }
-  const cacheKey = `verdict:v5:${provider}:${model}:${String(subject.id ?? "")}:${String(
+  const cacheKey = `verdict:v6:${withSearch ? "g" : "p"}:${provider}:${model}:${String(subject.id ?? "")}:${String(
     subject.office || ""
   )
     .toLowerCase()}:${String(subject.name || "").toLowerCase()}:${hash || "x"}`;
   let body = "";
   try {
-    body = verdict_request_body_js(provider, model, packedJson, true) || "";
+    body = verdict_request_body_js(provider, model, packedJson, withSearch) || "";
   } catch (err) {
     console.warn("verdict body", err);
   }
@@ -956,7 +970,12 @@ export async function runMeasureVerdict(m, opts = {}) {
       dossier: { endorsements: Array.isArray(m.endorsements) ? m.endorsements : [] },
       finance: m.finance || null,
     },
-    { pass: "measure", subject, fresh: !!opts.fresh }
+    {
+      pass: opts.pass || "measure",
+      subject,
+      fresh: !!opts.fresh,
+      withSearch: opts.withSearch,
+    }
   );
 }
 
@@ -1092,6 +1111,53 @@ function appendCommitteeAffiliation(enrich, { name, designation, source, source_
   } catch {
     enrich.affiliations = [...(enrich.affiliations || []), span];
   }
+}
+
+let sharedEnrich = { key: null, promise: null, enrich: {}, listeners: [] };
+
+export function getSharedEnrich() {
+  return sharedEnrich;
+}
+
+export function resetSharedEnrich() {
+  sharedEnrich = { key: null, promise: null, enrich: {}, listeners: [] };
+}
+
+export function attachEnrichListener(fn) {
+  if (typeof fn === "function") sharedEnrich.listeners.push(fn);
+}
+
+function notifyEnrichSession(session, u) {
+  for (const fn of session.listeners.slice()) {
+    try {
+      fn(u);
+    } catch (e) {
+      console.warn(e);
+    }
+  }
+}
+
+export function startSharedEnrich(c, opts = {}) {
+  const key = `c:${c.id}`;
+  if (!opts.fresh && sharedEnrich.key === key && sharedEnrich.promise) {
+    return sharedEnrich.promise;
+  }
+  const prevListeners = sharedEnrich.key === key ? sharedEnrich.listeners.slice() : [];
+  const session = { key, promise: null, enrich: {}, listeners: prevListeners };
+  sharedEnrich = session;
+  session.promise = enrichCandidate(
+    c,
+    (u) => {
+      if (sharedEnrich !== session) return;
+      if (u.enrich) session.enrich = u.enrich;
+      notifyEnrichSession(session, u);
+    },
+    { fresh: !!opts.fresh, skipAi: !!opts.skipAi }
+  ).then((r) => {
+    if (sharedEnrich === session) session.enrich = r.enrich;
+    return r;
+  });
+  return session.promise;
 }
 
 /**
@@ -1350,6 +1416,99 @@ export async function enrichCandidate(c, onStage = () => {}, opts = {}) {
   const isFec = fecId && looks_like_fec_id_js(fecId);
 
   const flAcct = flDosAccount(c);
+
+  const pref = new Map();
+  const kick = (id, fn) => {
+    if (!pref.has(id)) pref.set(id, Promise.resolve().then(fn));
+    return pref.get(id);
+  };
+  const kickNewsFetches = () => {
+    const name = (c.name || "").trim();
+    const loc = scrutinyLocale(c);
+    if (name.length < 5) return;
+    kick("gdelt_news", async () => {
+      let url = "";
+      try {
+        url = gdelt_artlist_url_js(name, loc) || "";
+      } catch {
+        url = "";
+      }
+      if (!url) return { skip: "no query" };
+      const res = await cachedFetch(url, {
+        key: `gdelt:artlist:${name}:${loc}`,
+        ttlMs: 24 * 60 * 60 * 1000,
+      });
+      return { body: res.body || "" };
+    });
+    kick("news_rss", async () => {
+      let url = "";
+      try {
+        url = google_news_rss_url_js(name, loc) || "";
+      } catch {
+        url = "";
+      }
+      if (!url) return { skip: "no query" };
+      const xml = await tryFetchText(url, `news:rss:${name}:${loc}`, 24 * 60 * 60 * 1000);
+      return { body: xml || "" };
+    });
+  };
+  const kickFlRecordFetches = () => {
+    if (!isFloridaCandidate(c)) return;
+    const name = (c.name || "").trim();
+    kick("fl_bar", async () => {
+      let url = "";
+      try {
+        url = fl_bar_search_url_js(name) || "";
+      } catch {
+        url = "";
+      }
+      if (!url) return { skip: "name too short" };
+      const html = await tryFetchText(url, `flbar:search:${name}`, 24 * 60 * 60 * 1000);
+      return { body: html || "" };
+    });
+    kick("fl_ethics", async () => {
+      let filingsUrl = "";
+      let ordersUrl = "";
+      try {
+        filingsUrl = fl_ethics_filings_url_js(name) || "";
+        ordersUrl = fl_ethics_orders_url_js() || "";
+      } catch {
+        filingsUrl = "";
+        ordersUrl = "";
+      }
+      if (!filingsUrl && !ordersUrl) return { skip: "name too short" };
+      const [filings, orders] = await Promise.all([
+        filingsUrl
+          ? tryFetchText(filingsUrl, `flethics:filings:${name}`, 24 * 60 * 60 * 1000)
+          : Promise.resolve(""),
+        ordersUrl
+          ? tryFetchText(ordersUrl, "flethics:orders", 7 * 24 * 60 * 60 * 1000)
+          : Promise.resolve(""),
+      ]);
+      return { filings: filings || "", orders: orders || "" };
+    });
+    const isJudge = !!(c.is_judge || c.chamber === "judicial");
+    if (isJudge) {
+      kick("fl_jqc", async () => {
+        let postsUrl = "";
+        let newsUrl = "";
+        try {
+          postsUrl = fl_jqc_posts_url_js(name) || "";
+          newsUrl = fl_jqc_news_url_js() || "";
+        } catch {
+          postsUrl = "";
+          newsUrl = "";
+        }
+        const [posts, news] = await Promise.all([
+          postsUrl
+            ? tryFetchText(postsUrl, `fljqc:posts:${name}`, 24 * 60 * 60 * 1000)
+            : Promise.resolve(""),
+          newsUrl ? tryFetchText(newsUrl, "fljqc:news", 24 * 60 * 60 * 1000) : Promise.resolve(""),
+        ]);
+        return { posts: posts || "", news: news || "" };
+      });
+    }
+  };
 
   for (const stage of stages) {
     if (stage.id === "profile") {
@@ -5314,28 +5473,19 @@ export async function enrichCandidate(c, onStage = () => {}, opts = {}) {
     }
 
     if (stage.id === "gdelt_news") {
+      kickNewsFetches();
       await run(stage, async () => {
         const name = (c.name || "").trim();
         if (name.length < 5) {
           skip(stage.id, stage.label, "name too short");
           return;
         }
-        const loc = scrutinyLocale(c);
-        let url = "";
-        try {
-          url = gdelt_artlist_url_js(name, loc) || "";
-        } catch {
-          url = "";
-        }
-        if (!url) {
-          skip(stage.id, stage.label, "no query");
+        const got = (await kick("gdelt_news", async () => ({ skip: "no query" }))) || {};
+        if (got.skip) {
+          skip(stage.id, stage.label, got.skip);
           return;
         }
-        const res = await cachedFetch(url, {
-          key: `gdelt:artlist:${name}:${loc}`,
-          ttlMs: 24 * 60 * 60 * 1000,
-        });
-        const hits = news_hits_from_gdelt_json_js(res.body || "", name) || [];
+        const hits = news_hits_from_gdelt_json_js(got.body || "", name) || [];
         const sc = ensureScrutiny(enrich, c);
         sc.news = merge_news_hits_js(JSON.stringify(sc.news || []), JSON.stringify(hits)) || hits;
         if (!hits.length) {
@@ -5348,29 +5498,19 @@ export async function enrichCandidate(c, onStage = () => {}, opts = {}) {
     }
 
     if (stage.id === "news_rss") {
+      kickNewsFetches();
       await run(stage, async () => {
         const name = (c.name || "").trim();
         if (name.length < 5) {
           skip(stage.id, stage.label, "name too short");
           return;
         }
-        const loc = scrutinyLocale(c);
-        let url = "";
-        try {
-          url = google_news_rss_url_js(name, loc) || "";
-        } catch {
-          url = "";
-        }
-        if (!url) {
-          skip(stage.id, stage.label, "no query");
+        const got = (await kick("news_rss", async () => ({ skip: "no query" }))) || {};
+        if (got.skip) {
+          skip(stage.id, stage.label, got.skip);
           return;
         }
-        const xml = await tryFetchText(
-          url,
-          `news:rss:${name}:${loc}`,
-          24 * 60 * 60 * 1000
-        );
-        const hits = news_hits_from_google_rss_js(xml || "", name) || [];
+        const hits = news_hits_from_google_rss_js(got.body || "", name) || [];
         const sc = ensureScrutiny(enrich, c);
         sc.news = merge_news_hits_js(JSON.stringify(sc.news || []), JSON.stringify(hits)) || [
           ...(sc.news || []),
@@ -5640,23 +5780,19 @@ export async function enrichCandidate(c, onStage = () => {}, opts = {}) {
     }
 
     if (stage.id === "fl_bar") {
+      kickFlRecordFetches();
       await run(stage, async () => {
         if (!isFloridaCandidate(c)) {
           skip(stage.id, stage.label, "not a Florida candidate");
           return;
         }
         const name = (c.name || "").trim();
-        let url = "";
-        try {
-          url = fl_bar_search_url_js(name) || "";
-        } catch {
-          url = "";
-        }
-        if (!url) {
-          skip(stage.id, stage.label, "name too short");
+        const got = (await kick("fl_bar", async () => ({ skip: "name too short" }))) || {};
+        if (got.skip) {
+          skip(stage.id, stage.label, got.skip);
           return;
         }
-        const html = await tryFetchText(url, `flbar:search:${name}`, 24 * 60 * 60 * 1000);
+        const html = got.body || "";
         if (!html || html.length < 80) {
           skip(stage.id, stage.label, "empty Bar page");
           return;
@@ -5674,51 +5810,30 @@ export async function enrichCandidate(c, onStage = () => {}, opts = {}) {
     }
 
     if (stage.id === "fl_ethics") {
+      kickFlRecordFetches();
       await run(stage, async () => {
         if (!isFloridaCandidate(c)) {
           skip(stage.id, stage.label, "not a Florida candidate");
           return;
         }
         const name = (c.name || "").trim();
-        let filingsUrl = "";
-        let ordersUrl = "";
-        try {
-          filingsUrl = fl_ethics_filings_url_js(name) || "";
-          ordersUrl = fl_ethics_orders_url_js() || "";
-        } catch {
-          filingsUrl = "";
-          ordersUrl = "";
-        }
-        if (!filingsUrl && !ordersUrl) {
-          skip(stage.id, stage.label, "name too short");
+        const got = (await kick("fl_ethics", async () => ({ skip: "name too short" }))) || {};
+        if (got.skip) {
+          skip(stage.id, stage.label, got.skip);
           return;
         }
         let hits = [];
-        if (filingsUrl) {
-          try {
-            const body = await tryFetchText(
-              filingsUrl,
-              `flethics:filings:${name}`,
-              24 * 60 * 60 * 1000
-            );
-            const extra = parse_fl_ethics_filings_json_js(body || "", name) || [];
-            hits = merge_record_hits_js(JSON.stringify(hits), JSON.stringify(extra)) || extra;
-          } catch (err) {
-            console.warn("fl_ethics filings", err);
-          }
+        try {
+          const extra = parse_fl_ethics_filings_json_js(got.filings || "", name) || [];
+          hits = merge_record_hits_js(JSON.stringify(hits), JSON.stringify(extra)) || extra;
+        } catch (err) {
+          console.warn("fl_ethics filings", err);
         }
-        if (ordersUrl) {
-          try {
-            const html = await tryFetchText(
-              ordersUrl,
-              "flethics:orders",
-              7 * 24 * 60 * 60 * 1000
-            );
-            const extra = parse_fl_ethics_orders_html_js(html || "", name) || [];
-            hits = merge_record_hits_js(JSON.stringify(hits), JSON.stringify(extra)) || extra;
-          } catch (err) {
-            console.warn("fl_ethics orders", err);
-          }
+        try {
+          const extra = parse_fl_ethics_orders_html_js(got.orders || "", name) || [];
+          hits = merge_record_hits_js(JSON.stringify(hits), JSON.stringify(extra)) || extra;
+        } catch (err) {
+          console.warn("fl_ethics orders", err);
         }
         const sc = ensureScrutiny(enrich, c);
         sc.records = merge_record_hits_js(JSON.stringify(sc.records || []), JSON.stringify(hits)) || hits;
@@ -5740,6 +5855,7 @@ export async function enrichCandidate(c, onStage = () => {}, opts = {}) {
     }
 
     if (stage.id === "fl_jqc") {
+      kickFlRecordFetches();
       await run(stage, async () => {
         const isJudge = !!(c.is_judge || c.chamber === "judicial");
         if (!isFloridaCandidate(c) || !isJudge) {
@@ -5747,33 +5863,21 @@ export async function enrichCandidate(c, onStage = () => {}, opts = {}) {
           return;
         }
         const name = (c.name || "").trim();
-        let postsUrl = "";
-        let newsUrl = "";
-        try {
-          postsUrl = fl_jqc_posts_url_js(name) || "";
-          newsUrl = fl_jqc_news_url_js() || "";
-        } catch {
-          postsUrl = "";
-          newsUrl = "";
+        const got = (await kick("fl_jqc", async () => ({ skip: "no query" }))) || {};
+        if (got.skip) {
+          skip(stage.id, stage.label, got.skip);
+          return;
         }
         let hits = [];
-        if (postsUrl) {
-          try {
-            const body = await tryFetchText(
-              postsUrl,
-              `fljqc:posts:${name}`,
-              24 * 60 * 60 * 1000
-            );
-            const extra = parse_fl_jqc_posts_json_js(body || "", name) || [];
-            hits = merge_record_hits_js(JSON.stringify(hits), JSON.stringify(extra)) || extra;
-          } catch (err) {
-            console.warn("fl_jqc posts", err);
-          }
+        try {
+          const extra = parse_fl_jqc_posts_json_js(got.posts || "", name) || [];
+          hits = merge_record_hits_js(JSON.stringify(hits), JSON.stringify(extra)) || extra;
+        } catch (err) {
+          console.warn("fl_jqc posts", err);
         }
-        if (!hits.length && newsUrl) {
+        if (!hits.length) {
           try {
-            const html = await tryFetchText(newsUrl, "fljqc:news", 24 * 60 * 60 * 1000);
-            const extra = parse_fl_jqc_news_html_js(html || "", name) || [];
+            const extra = parse_fl_jqc_news_html_js(got.news || "", name) || [];
             hits = merge_record_hits_js(JSON.stringify(hits), JSON.stringify(extra)) || extra;
           } catch (err) {
             console.warn("fl_jqc news", err);

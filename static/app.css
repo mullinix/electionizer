@@ -2597,6 +2597,10 @@ a.verdict-cite { display: inline-block; }
   color: var(--glow);
   animation: fit-pulse 1.2s ease-in-out infinite;
 }
+.fit-chip.fit-preview {
+  opacity: 0.72;
+  font-weight: 500;
+}
 .fit-chip.fit-na {
   color: var(--text-dim);
   font-weight: 500;
@@ -2631,7 +2635,14 @@ a.verdict-cite { display: inline-block; }
   align-items: center;
   gap: 0.25rem 0.55rem;
 }
-.score-role > summary .reload-btns { margin-left: auto; }
+.score-role > summary .score-role-meta {
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-shrink: 0;
+}
+.score-role > summary .reload-btns { margin-left: 0; }
 .score-progress-fold > summary::-webkit-details-marker { display: none; }
 .score-progress-fold > summary::before {
   content: "▸";
@@ -2673,11 +2684,10 @@ a.verdict-cite { display: inline-block; }
 .score-role[open] > summary::before { content: "▾"; }
 .score-role-title { font-weight: 600; font-size: 0.88rem; }
 .score-role-count {
-  margin-left: auto;
   font-size: 0.7rem;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  letter-spacing: 0.04em;
   color: var(--text-dim);
+  white-space: nowrap;
 }
 .score-tree-list { margin: 0 0 0.45rem; }
 .score-tree-name { font-weight: 500; }

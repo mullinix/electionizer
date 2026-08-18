@@ -1,4 +1,4 @@
-import { runVerdictPass, runMeasureVerdict } from "./enrich.js";
+import { runVerdictPass, runMeasureVerdict, startSharedEnrich } from "./enrich.js";
 import { applyVoterFit, fitCss, fitTextCss, reloadButtonsHtml } from "./verdict.js";
 import { getScoreConcurrency } from "./settings.js";
 
@@ -76,7 +76,22 @@ export function renderFitChip(rec) {
     return `<span class="fit-chip fit-pending" title="Queued">…</span>`;
   }
   if (rec.status === "scraping" || rec.status === "scoring") {
+    if (rec.preview && rec.fit != null) {
+      const color = fitCss(rec.fit);
+      const text = fitTextCss(rec.fit);
+      return `<span class="fit-chip fit-preview" style="background:${color};color:${text}" title="Preview · still analyzing">${esc(
+        String(rec.fit)
+      )}⌛</span>`;
+    }
     return `<span class="fit-chip fit-run" title="${esc(rec.stage || "Scoring")}">…</span>`;
+  }
+  if (rec.status === "preview") {
+    const color = rec.fit != null ? fitCss(rec.fit) : "";
+    const text = rec.fit != null ? fitTextCss(rec.fit) : "";
+    const style = color ? ` style="background:${color};color:${text}"` : "";
+    return `<span class="fit-chip fit-preview"${style} title="Preview · still analyzing">${esc(
+      rec.fit != null ? String(rec.fit) : "…"
+    )}⌛</span>`;
   }
   if (rec.status === "skip" || rec.status === "error") {
     return `<span class="fit-chip fit-na" title="${esc(rec.skip || rec.status)}">—</span>`;
@@ -111,6 +126,7 @@ function makeCandidateItem(c, office, jurisdiction, roleKey, roleLabel) {
     card: null,
     fit: null,
     skip: null,
+    preview: false,
   };
 }
 
@@ -134,6 +150,7 @@ function makeMeasureItem(m) {
     card: null,
     fit: null,
     skip: null,
+    preview: false,
   };
 }
 
@@ -174,9 +191,11 @@ export function flattenBallotItems(report) {
 
 function recount(b) {
   const items = b.items || [];
-  const done = items.filter((it) => it.status === "done").length;
+  const done = items.filter((it) => it.status === "done" && !it.preview).length;
   const skip = items.filter((it) => it.status === "skip" || it.status === "error").length;
-  const active = items.find((it) => it.status === "scraping" || it.status === "scoring");
+  const active = items.find(
+    (it) => it.status === "scraping" || it.status === "scoring" || it.status === "preview"
+  );
   return {
     total: items.length,
     done,
@@ -213,6 +232,7 @@ export function rememberCard(kind, id, card) {
     card: stamped,
     fit: overallScore(stamped),
     skip: null,
+    preview: false,
   });
 }
 
@@ -234,6 +254,7 @@ export function resetScoreItems(keys) {
       card: null,
       fit: null,
       skip: null,
+      preview: false,
     });
   }
 }
@@ -286,6 +307,7 @@ export function resumeScoring() {
 
 function stageMark(status) {
   if (status === "done") return "✓";
+  if (status === "preview") return "⌛";
   if (status === "scraping" || status === "scoring") return "›";
   if (status === "skip") return "–";
   if (status === "error") return "!";
@@ -320,7 +342,9 @@ export function renderScoreTree(opts = {}) {
       const nSettled = role.rows.filter(
         (r) => r.status === "done" || r.status === "skip" || r.status === "error"
       ).length;
-      const complete = nSettled === role.rows.length;
+      const nTotal = role.rows.length;
+      const pct = nTotal ? Math.round((nSettled / nTotal) * 100) : 0;
+      const complete = nSettled === nTotal;
       const open = complete ? "" : " open";
       const doneClass = complete ? " score-role-done" : "";
       const people = role.rows
@@ -333,16 +357,22 @@ export function renderScoreTree(opts = {}) {
             it.status === "queued"
               ? "queued"
               : it.status === "scraping"
-                ? it.stage || "packing…"
-                : "identity + search";
+                ? it.stage || "scraping…"
+                : it.status === "preview"
+                  ? "preview · still analyzing"
+                  : it.status === "done"
+                    ? "filings packed"
+                    : it.stage || it.status;
           const score =
-            it.status === "done" && it.fit != null
+            it.status === "done" && it.fit != null && !it.preview
               ? String(it.fit)
-              : it.status === "scoring"
-                ? it.stage || "model…"
-                : it.status === "skip" || it.status === "error"
-                  ? it.skip || it.status
-                  : "queued";
+              : it.preview && it.fit != null
+                ? `preview ${it.fit}`
+                : it.status === "scoring"
+                  ? it.stage || "model…"
+                  : it.status === "skip" || it.status === "error"
+                    ? it.skip || it.status
+                    : "queued";
           return `<li class="stage-${esc(it.status)}" data-score-key="${esc(it.key)}">
             <span class="stage-mark">${stageMark(it.status)}</span>
             <a href="#" ${href} class="score-tree-name">${esc(it.name)}</a>
@@ -357,8 +387,10 @@ export function renderScoreTree(opts = {}) {
         <summary>
           <span class="score-role-title">${esc(role.label)}</span>
           ${role.jurisdiction ? `<span class="office-jurisdiction">${esc(role.jurisdiction)}</span>` : ""}
-          <span class="score-role-count">${nSettled}/${role.rows.length}</span>
-          ${reloadButtonsHtml("role", role.key)}
+          <span class="score-role-meta">
+            <span class="score-role-count">${pct}% (${nSettled}/${nTotal})</span>
+            ${reloadButtonsHtml("role", role.key)}
+          </span>
         </summary>
         <ul class="stage-list score-tree-list">${people}</ul>
       </details>`;
@@ -503,58 +535,118 @@ export function renderScorecard(opts = {}) {
       ${reloadButtonsHtml("ballot", "all")}
     </header>
     <p class="meta">${st.done} scored · ${st.skip} skipped · ${st.pending} pending · best fit at the top of each party</p>
-    <p class="meta muted">Click a name for the AI verdict. List scoring is the early pass (identity + live search).</p>
+    <p class="meta muted">Click a name for the verdict. List: preview chip first, then grounded score after filings scrape.</p>
     ${body}`;
 }
 
+function stampItemCard(item, card) {
+  const skey = item.kind === "measure" ? `m:${item.id}` : `c:${item.id}`;
+  return {
+    ...card,
+    subject_key: skey,
+    subject_name: item.name,
+    subject_office: item.office,
+  };
+}
+
 async function scoreOne(item, notify) {
-  if (item.status === "done" && item.card) return;
-  if (item.status !== "scraping" && item.status !== "scoring") {
-    mark(item, { status: "scraping", stage: "Packing identity…", skip: null });
+  if (item.status === "done" && item.card && !item.preview) return;
+  if (!item.card) {
+    mark(item, { status: "scoring", stage: "Preview score…", skip: null, preview: true });
     notify();
+    let preview;
+    if (item.kind === "measure") {
+      preview = await runMeasureVerdict(item.raw, { pass: "preview", withSearch: false });
+    } else {
+      preview = await runVerdictPass(item.raw, {}, { pass: "preview", withSearch: false });
+    }
+    if (preview && preview.card) {
+      const stamped = stampItemCard(item, preview.card);
+      mark(item, {
+        status: "preview",
+        stage: "Preview · still analyzing",
+        card: stamped,
+        fit: overallScore(stamped),
+        skip: null,
+        preview: true,
+      });
+      notify();
+    } else if (!preview || preview.skip) {
+      mark(item, {
+        status: "skip",
+        stage: "Skipped",
+        skip: (preview && preview.skip) || "No preview",
+        preview: false,
+      });
+      return;
+    }
   }
-  mark(item, { status: "scoring", stage: "Live search + model…" });
+  let enrich = {};
+  if (item.kind !== "measure") {
+    mark(item, { status: "scraping", stage: "Scraping filings…", preview: true });
+    notify();
+    try {
+      const r = await startSharedEnrich(item.raw, { skipAi: true });
+      enrich = (r && r.enrich) || {};
+    } catch (e) {
+      console.warn("score enrich", e);
+    }
+  }
+  mark(item, { status: "scoring", stage: "Grounded score…", preview: true });
   notify();
   let result;
   if (item.kind === "measure") {
-    result = await runMeasureVerdict(item.raw);
+    result = await runMeasureVerdict(item.raw, { pass: "grounded", withSearch: true });
+  } else if (enrich.verdict && item.card && !item.preview) {
+    result = { card: enrich.verdict };
   } else {
-    result = await runVerdictPass(item.raw, {}, { pass: "early" });
+    result = await runVerdictPass(item.raw, enrich, { pass: "grounded", withSearch: true });
   }
   if (result && result.card) {
-    const skey = item.kind === "measure" ? `m:${item.id}` : `c:${item.id}`;
+    const stamped = stampItemCard(item, result.card);
     mark(item, {
       status: "done",
       stage: "Scored",
-      card: {
-        ...result.card,
-        subject_key: skey,
-        subject_name: item.name,
-        subject_office: item.office,
-      },
-      fit: overallScore(result.card),
+      card: stamped,
+      fit: overallScore(stamped),
       skip: null,
+      preview: false,
+    });
+  } else if (item.card && item.preview) {
+    mark(item, {
+      status: "done",
+      stage: "Preview only",
+      skip: (result && result.skip) || null,
+      preview: true,
     });
   } else {
     mark(item, {
       status: "skip",
       stage: "Skipped",
       skip: (result && result.skip) || "No verdict",
+      preview: false,
     });
   }
+}
+
+function itemInFlight(item) {
+  return (
+    item &&
+    (item.status === "scraping" ||
+      item.status === "scoring" ||
+      item.status === "preview" ||
+      (item.preview && item.status !== "done" && item.status !== "skip" && item.status !== "error"))
+  );
 }
 
 export async function prioritizeAndScore(kind, id, notify) {
   if (!board) return getScoreItem(kind, id);
   const item = board.byKey.get(scoreKey(kind, id));
   if (!item) return null;
-  if (item.status === "done" && item.card) return item;
-  if (item.status === "scraping" || item.status === "scoring") {
+  if (item.status === "done" && item.card && !item.preview) return item;
+  if (itemInFlight(item)) {
     const started = Date.now();
-    while (
-      (item.status === "scraping" || item.status === "scoring") &&
-      Date.now() - started < 180000
-    ) {
+    while (itemInFlight(item) && Date.now() - started < 180000) {
       await new Promise((r) => setTimeout(r, 200));
     }
     return item;

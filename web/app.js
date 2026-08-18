@@ -4,7 +4,14 @@ import init, {
   sample_ballot_ref_js,
 } from "./pkg/electionizer_wasm.js";
 import { buildLiveFederalBallot } from "./live.js";
-import { enrichCandidate, planStages, runVerdictPass, runMeasureVerdict } from "./enrich.js";
+import {
+  planStages,
+  runMeasureVerdict,
+  startSharedEnrich,
+  attachEnrichListener,
+  getSharedEnrich,
+  resetSharedEnrich,
+} from "./enrich.js";
 import { renderVerdictShell, renderVerdictCard, mountVoterProfile } from "./verdict.js";
 import {
   resetBoard,
@@ -807,7 +814,7 @@ function wireDetailTabs(root) {
 /** Detail list UI state (votes filter/page) — survives progressive patches. */
 let detailCtx = null;
 /** @type {{ key: string|null, promise: Promise<object>|null, enrich: object, listeners: Function[] }} */
-let sharedEnrich = { key: null, promise: null, enrich: {}, listeners: [] };
+
 /** @type {{ kind: string, candidate?: object, measure?: object, card?: object }|null} */
 let verdictCtx = null;
 let verdictGen = 0;
@@ -845,43 +852,6 @@ function withElectionMeta(raw) {
     state_code: lastReport?.state_code || raw.state_code,
     zip: lastReport?.zip,
   };
-}
-
-function attachEnrichListener(fn) {
-  if (typeof fn === "function") sharedEnrich.listeners.push(fn);
-}
-
-function notifyEnrichSession(session, u) {
-  for (const fn of session.listeners.slice()) {
-    try {
-      fn(u);
-    } catch (e) {
-      console.warn(e);
-    }
-  }
-}
-
-function startSharedEnrich(c, opts = {}) {
-  const key = `c:${c.id}`;
-  if (!opts.fresh && sharedEnrich.key === key && sharedEnrich.promise) {
-    return sharedEnrich.promise;
-  }
-  const prevListeners = sharedEnrich.key === key ? sharedEnrich.listeners.slice() : [];
-  const session = { key, promise: null, enrich: {}, listeners: prevListeners };
-  sharedEnrich = session;
-  session.promise = enrichCandidate(
-    c,
-    (u) => {
-      if (sharedEnrich !== session) return;
-      if (u.enrich) session.enrich = u.enrich;
-      notifyEnrichSession(session, u);
-    },
-    { fresh: !!opts.fresh, skipAi: !!opts.skipAi }
-  ).then((r) => {
-    if (sharedEnrich === session) session.enrich = r.enrich;
-    return r;
-  });
-  return session.promise;
 }
 
 function setReloadStatus(msg) {
@@ -932,21 +902,13 @@ async function reloadCandidate(id, what) {
         verdictCtx.card = null;
         paintVerdict(null, "Re-scoring…");
       }
-      const snap = sharedEnrich.key === `c:${c.id}` ? sharedEnrich.enrich || {} : {};
-      const early = await runVerdictPass(c, snap, { pass: "early", fresh: true });
-      if (early && early.card) {
-        const key = subjectKey("candidate", c.id);
-        const stamped = stampCard(early.card, key, c);
-        rememberCard("candidate", c.id, stamped);
-        if (sharedEnrich.key === key && sharedEnrich.enrich) {
-          sharedEnrich.enrich.verdict = stamped;
-        }
-        if (verdictCtx && String(verdictCtx.candidate?.id) === String(id)) {
-          verdictCtx.card = stamped;
-          paintVerdict(stamped);
-        }
+      await prioritizeAndScore("candidate", c.id, refreshBallotList);
+      const rec = getScoreItem("candidate", c.id);
+      if (rec && rec.card && verdictCtx && String(verdictCtx.candidate?.id) === String(id)) {
+        verdictCtx.card = rec.card;
+        paintVerdict(rec.card, null, { preview: !!rec.preview });
       } else if (verdictCtx && String(verdictCtx.candidate?.id) === String(id)) {
-        paintVerdict(null, (early && early.skip) || "No verdict.");
+        paintVerdict(null, (rec && rec.skip) || "No verdict.");
       }
     } else {
       await prioritizeAndScore("candidate", c.id, refreshBallotList);
@@ -959,7 +921,7 @@ async function reloadCandidate(id, what) {
   if (detailCtx && String(detailCtx.candidate?.id) === String(id)) resetDetailStagesUi();
   await startSharedEnrich(c, { fresh: true, skipAi: true });
   if (detailCtx && String(detailCtx.candidate?.id) === String(id)) {
-    detailCtx.enrich = sharedEnrich.enrich || {};
+        detailCtx.enrich = getSharedEnrich().enrich || {};
     patchDetail(null, true);
   }
   setReloadStatus(`Sources reloaded for ${c.name}.`);
@@ -1036,7 +998,7 @@ async function reloadRole(roleKey, what) {
       if (detailCtx && String(detailCtx.candidate?.id) === String(c.id)) resetDetailStagesUi();
       await startSharedEnrich(c, { fresh: true, skipAi: true });
       if (detailCtx && String(detailCtx.candidate?.id) === String(c.id)) {
-        detailCtx.enrich = sharedEnrich.enrich || {};
+    detailCtx.enrich = getSharedEnrich().enrich || {};
         patchDetail(null, true);
       }
     }
@@ -1075,7 +1037,7 @@ async function handleReload(btn) {
   }
 }
 
-function paintVerdict(card, status) {
+function paintVerdict(card, status, opts = {}) {
   const host = $("#verdict-card");
   if (!host) return;
   const page = $("#verdict-page");
@@ -1083,7 +1045,7 @@ function paintVerdict(card, status) {
   if (card) {
     const got = card.subject_key != null ? String(card.subject_key) : "";
     if (want && got && want !== got) return;
-    host.innerHTML = renderVerdictCard(card);
+    host.innerHTML = renderVerdictCard(card, { preview: !!opts.preview });
     return;
   }
   const el = $("#verdict-status");
@@ -1173,12 +1135,12 @@ async function openVerdict(raw) {
   document.title = `${c.name || "Candidate"} · verdict`;
   wireVerdictPage("candidate");
   pauseScoring();
-  const accept = (card, status) => {
+  const accept = (card, status, preview) => {
     if (!verdictLive(token)) return false;
     if (card) {
       const stamped = stampCard(card, key, c);
       verdictCtx.card = stamped;
-      paintVerdict(stamped);
+      paintVerdict(stamped, null, { preview: !!preview });
       return true;
     }
     paintVerdict(null, status);
@@ -1186,17 +1148,9 @@ async function openVerdict(raw) {
   };
   const cached = getScoreItem("candidate", c.id);
   if (cached && cached.card) {
-    accept(cached.card);
-  } else if (hasLlmKey() && hasWispConfigured() && cached && cached.status !== "done") {
+    accept(cached.card, null, cached.preview);
+  } else if (hasLlmKey() && hasWispConfigured()) {
     accept(null, "Scoring this candidate…");
-    try {
-      const item = await prioritizeAndScore("candidate", c.id, refreshBallotList);
-      if (item && item.card && verdictLive(token) && !verdictCtx.card) {
-        accept(item.card);
-      }
-    } catch (e) {
-      console.warn("prioritize verdict", e);
-    }
   }
 
   let lastSkip = "";
@@ -1211,34 +1165,35 @@ async function openVerdict(raw) {
       accept(null, (u.label || "Sources") + "…");
     }
   };
-  startSharedEnrich(c);
+  startSharedEnrich(c, { skipAi: true });
   attachEnrichListener(onStage);
 
   if (hasLlmKey() && hasWispConfigured()) {
     try {
-      const enrichSnap = sharedEnrich.key === key ? sharedEnrich.enrich || {} : {};
-      const early = await runVerdictPass(c, enrichSnap, { pass: "early" });
+      const item = await prioritizeAndScore("candidate", c.id, () => {
+        refreshBallotList();
+        const rec = getScoreItem("candidate", c.id);
+        if (rec && rec.card && verdictLive(token)) accept(rec.card, null, rec.preview);
+      });
       if (!verdictLive(token)) return;
-      if (early && early.card) {
-        accept(early.card);
-        if (sharedEnrich.key === key && sharedEnrich.enrich) {
-          sharedEnrich.enrich.verdict = verdictCtx.card;
-        }
-        rememberCard("candidate", c.id, verdictCtx.card);
-      } else if (early && early.skip && !verdictCtx.card) {
-        lastSkip = early.skip;
-        accept(null, early.skip);
+      if (item && item.card) accept(item.card, null, item.preview);
+      else if (item && item.skip && !verdictCtx.card) {
+        lastSkip = item.skip;
+        accept(null, item.skip);
       }
     } catch (e) {
       lastSkip = formatUserError(e);
-      console.warn("verdict early", e);
+      console.warn("prioritize verdict", e);
     }
   }
 
   try {
-    const { enrich } = await startSharedEnrich(c);
+    const { enrich } = await startSharedEnrich(c, { skipAi: true });
     if (!verdictLive(token)) return;
-    if (enrich && enrich.verdict) {
+    const rec = getScoreItem("candidate", c.id);
+    if (rec && rec.card) {
+      accept(rec.card, null, rec.preview);
+    } else if (enrich && enrich.verdict) {
       accept(enrich.verdict);
       rememberCard("candidate", c.id, verdictCtx.card);
     } else if (!verdictCtx.card && !hasLlmKey()) {
@@ -1280,35 +1235,35 @@ async function openVerdictMeasure(raw) {
   document.title = `${m.measure_code || m.title || "Measure"} · verdict`;
   wireVerdictPage("measure");
   pauseScoring();
-  const accept = (card, status) => {
+  const accept = (card, status, preview) => {
     if (!verdictLive(token)) return;
     if (card) {
       const stamped = stampCard(card, key, m);
       verdictCtx.card = stamped;
-      paintVerdict(stamped);
+      paintVerdict(stamped, null, { preview: !!preview });
       return;
     }
     paintVerdict(null, status);
   };
   const cachedM = getScoreItem("measure", m.id);
   if (cachedM && cachedM.card) {
-    accept(cachedM.card);
+    accept(cachedM.card, null, cachedM.preview);
   }
   if (!hasLlmKey()) return;
   if (!hasWispConfigured()) {
     accept(null, "Wisp required for live verdict.");
     return;
   }
-  if (!verdictCtx.card) accept(null, "Searching and scoring this measure…");
+  if (!verdictCtx.card) accept(null, "Scoring this measure…");
   try {
-    const result = await runMeasureVerdict(m);
+    const item = await prioritizeAndScore("measure", m.id, () => {
+      refreshBallotList();
+      const rec = getScoreItem("measure", m.id);
+      if (rec && rec.card && verdictLive(token)) accept(rec.card, null, rec.preview);
+    });
     if (!verdictLive(token)) return;
-    if (result && result.card) {
-      accept(result.card);
-      rememberCard("measure", m.id, verdictCtx.card);
-    } else {
-      accept(null, (result && result.skip) || "No verdict.");
-    }
+    if (item && item.card) accept(item.card, null, item.preview);
+    else accept(null, (item && item.skip) || "No verdict.");
   } catch (e) {
     if (verdictLive(token)) accept(null, formatUserError(e));
   }
@@ -1424,9 +1379,10 @@ async function openDetail(raw, opts = {}) {
   const stages = planStages(c);
   const host = $("#detail-host");
   measureDetailId = null;
+  const shared = getSharedEnrich();
   const reuse =
-    sharedEnrich.key === `c:${c.id}` && sharedEnrich.enrich
-      ? sharedEnrich.enrich
+    shared.key === `c:${c.id}` && shared.enrich
+      ? shared.enrich
       : {};
   detailCtx = {
     candidate: c,
@@ -1547,7 +1503,7 @@ function loadSettingsForm() {
     const lab = $("#score-concurrency-val");
     if (lab) {
       const n = getScoreConcurrency();
-      lab.textContent = `${n} at a time. 1 = sequential. Local Wisp handles more than the public instance.`;
+      lab.textContent = `${n} at a time (preview + scrape + grounded score). 1 = sequential. Local Wisp handles more than the public instance.`;
     }
   }
   if ($("#settings-precinct")) $("#settings-precinct").value = getVoterPrecinct();
@@ -1725,7 +1681,7 @@ async function main() {
     const n = setScoreConcurrency($("#score-concurrency").value);
     const lab = $("#score-concurrency-val");
     if (lab) {
-      lab.textContent = `${n} at a time. 1 = sequential. Local Wisp handles more than the public instance.`;
+      lab.textContent = `${n} at a time (preview + scrape + grounded score). 1 = sequential. Local Wisp handles more than the public instance.`;
     }
   });
 
@@ -1788,7 +1744,7 @@ async function main() {
       measureDetailId = null;
       detailCtx = null;
       verdictCtx = null;
-      sharedEnrich = { key: null, promise: null, enrich: {}, listeners: [] };
+      resetSharedEnrich();
       const root = $("#ballot-root");
       if (root) root.innerHTML = "";
       clearLastBallotOffer();

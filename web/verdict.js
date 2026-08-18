@@ -599,13 +599,19 @@ export function renderVerdictCard(card, opts = {}) {
     profiled && overall.raw_score != null && overall.raw_score !== overall.score
       ? `<span class="muted verdict-raw">alignment ${esc(String(overall.raw_score))}</span>`
       : "";
-  const kicker = profiled
-    ? "Your fit · remapped from profile · cited"
-    : "AI verdict · scored + cited";
+  const kicker = opts.preview
+    ? "Preview · still analyzing filings"
+    : profiled
+      ? "Your fit · remapped from profile · cited"
+      : "AI verdict · scored + cited";
   const legend = profiled
     ? `<div class="fit-legend-row"><span class="muted">Poor fit</span><span class="fit-legend" aria-hidden="true"></span><span class="muted">Good fit</span></div>`
     : "";
+  const previewBanner = opts.preview
+    ? `<p class="warn-banner" id="verdict-preview-banner">Preview score — still scraping filings for a grounded score.</p>`
+    : "";
   return `
+    ${previewBanner}
     <p class="verdict-kicker muted">${kicker}</p>
     ${fitted.headline ? `<h2 class="verdict-headline">${esc(fitted.headline)}</h2>` : ""}
     <div class="verdict-overall"${profiled ? ` data-fit="${esc(String(overall.score ?? ""))}"` : ""}>

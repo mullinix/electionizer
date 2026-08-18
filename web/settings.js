@@ -565,6 +565,16 @@ export function updateProfileAxisFields(id, patch, builtinIds) {
   return existing[i];
 }
 
+export function profileCatalogForPack(builtin) {
+  return resolveProfileAxes(builtin).map((a) => ({
+    id: a.id,
+    label: a.label,
+    definition: a.definition || "",
+    low_label: a.low_label || "Disagree",
+    high_label: a.high_label || "Agree",
+  }));
+}
+
 export function resolveProfileAxes(builtin) {
   const rows = Array.isArray(builtin) ? builtin : [];
   const builtinIds = new Set(rows.map((a) => String(a.id || "").toLowerCase()));

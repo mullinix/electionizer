@@ -163,7 +163,7 @@ const STAGES = {
     ],
   },
   browser_pipeline:
-    "ZIP → Zippo → TIGERweb+FCC → FEC → state bodies → WASM build_live_ballot_report → progressive measure finance (FL TreFin → FTM measures) → measure endorsements (BP Support/Oppose) → background ballot score queue (M-early per item) → click → Verdict / Details enrich",
+    "ZIP → Zippo → TIGERweb+FCC → FEC → state bodies → WASM build_live_ballot_report → progressive measure finance (FL TreFin → FTM measures) → measure endorsements (BP Support/Oppose) → background ballot score queue (preview → scrape → grounded) → click → Verdict / Details enrich",
 };
 
 const WHERE = {

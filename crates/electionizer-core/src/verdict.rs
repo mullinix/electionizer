@@ -17,8 +17,13 @@ pub const VERDICT_OPENAI_DEFAULT_MODEL: &str = "gpt-4o-mini";
 const MAX_VOTES: usize = 40;
 const MAX_NEWS: usize = 12;
 const MAX_DONORS: usize = 15;
-const MAX_FACTS: usize = 16;
+const MAX_FACTS: usize = 32;
 const MAX_CLAIMS: usize = 16;
+const MAX_CAREER_SPANS: usize = 8;
+const MAX_HOLDINGS: usize = 12;
+const MAX_AFFILIATIONS: usize = 12;
+const MAX_CONTRASTS: usize = 12;
+const MAX_RECORDS: usize = 12;
 const MAX_HEADLINE: usize = 160;
 const MAX_VERDICT_LINE: usize = 280;
 const MAX_SUMMARY: usize = 8;
@@ -210,6 +215,71 @@ pub struct PackedFinance {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PackedCareerSpan {
+    pub id: String,
+    pub category: String,
+    pub label: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_year: Option<i32>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end_year: Option<i32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PackedCareer {
+    pub blurb: String,
+    pub is_career_politician: bool,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub banner: Option<String>,
+    #[serde(default)]
+    pub spans: Vec<PackedCareerSpan>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PackedHolding {
+    pub id: String,
+    pub kind: String,
+    pub description: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub amount: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PackedAffiliation {
+    pub id: String,
+    pub party: String,
+    pub role: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub end: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PackedContrast {
+    pub id: String,
+    pub claim: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub note: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub topic: Option<String>,
+    pub match_count: u32,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct PackedRecord {
+    pub id: String,
+    pub kind: String,
+    pub title: String,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub detail: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub status: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct PackedContext {
     pub kind: String,
     pub name: String,
@@ -240,6 +310,18 @@ pub struct PackedContext {
     #[serde(default)]
     pub facts: Vec<PackedFact>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub career: Option<PackedCareer>,
+    #[serde(default)]
+    pub holdings: Vec<PackedHolding>,
+    #[serde(default)]
+    pub affiliations: Vec<PackedAffiliation>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub family_summary: Option<String>,
+    #[serde(default)]
+    pub contrasts: Vec<PackedContrast>,
+    #[serde(default)]
+    pub records: Vec<PackedRecord>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     pub summary: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub source_url: Option<String>,
@@ -258,6 +340,10 @@ pub struct VoterPref {
     pub label: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub definition: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub low_label: Option<String>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub high_label: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -389,8 +475,33 @@ const PROFILE_AXES: &[(&str, &str, &str, &str, &str, &str)] = &[
     ("incumbent_class_benefit", "Incumbent/class benefit", "1 = reject measures that advantage sitting officials, donors, or a narrow industry. 5 = accept that.", "Measures", "Oppose perk", "Accept perk"),
 ];
 
-fn catalog_meta(catalog: Option<&Value>) -> HashMap<String, (String, String)> {
-    let mut map = HashMap::new();
+#[derive(Debug, Clone, Default)]
+struct PrefMeta {
+    label: String,
+    definition: String,
+    low_label: String,
+    high_label: String,
+}
+
+fn builtin_pref_meta() -> HashMap<String, PrefMeta> {
+    PROFILE_AXES
+        .iter()
+        .map(|(id, label, def, _group, low, high)| {
+            (
+                (*id).to_string(),
+                PrefMeta {
+                    label: (*label).into(),
+                    definition: (*def).into(),
+                    low_label: (*low).into(),
+                    high_label: (*high).into(),
+                },
+            )
+        })
+        .collect()
+}
+
+fn catalog_meta(catalog: Option<&Value>) -> HashMap<String, PrefMeta> {
+    let mut map = builtin_pref_meta();
     let Some(rows) = catalog.and_then(|c| c.as_array()) else {
         return map;
     };
@@ -401,10 +512,25 @@ fn catalog_meta(catalog: Option<&Value>) -> HashMap<String, (String, String)> {
         }
         let label = js_str(row, &["label"]);
         let definition = js_str(row, &["definition"]);
-        if label.is_empty() && definition.is_empty() {
+        let low = js_str(row, &["low_label"]);
+        let high = js_str(row, &["high_label"]);
+        if label.is_empty() && definition.is_empty() && low.is_empty() && high.is_empty() {
             continue;
         }
-        map.insert(id, (label, definition));
+        let mut meta = map.remove(&id).unwrap_or_default();
+        if !label.is_empty() {
+            meta.label = label;
+        }
+        if !definition.is_empty() {
+            meta.definition = definition;
+        }
+        if !low.is_empty() {
+            meta.low_label = low;
+        }
+        if !high.is_empty() {
+            meta.high_label = high;
+        }
+        map.insert(id, meta);
     }
     map
 }
@@ -417,12 +543,14 @@ fn prefs_from_value(v: Option<&Value>, catalog: Option<&Value>) -> Vec<VoterPref
     let mut out: Vec<VoterPref> = parse_voter_profile(&v.to_string())
         .into_iter()
         .map(|(id, likert)| {
-            let (label, definition) = meta.get(&id).cloned().unwrap_or_default();
+            let m = meta.get(&id).cloned().unwrap_or_default();
             VoterPref {
                 id,
                 likert,
-                label: nonempty(label),
-                definition: nonempty(definition),
+                label: nonempty(m.label),
+                definition: nonempty(m.definition),
+                low_label: nonempty(m.low_label),
+                high_label: nonempty(m.high_label),
             }
         })
         .collect();
@@ -890,6 +1018,110 @@ pub fn pack_verdict_context(subject_json: &str, enrich_json: &str) -> Option<Pac
         });
     }
 
+    if let Some(career) = dossier.and_then(|d| d.get("career")) {
+        if career.is_object() {
+            let blurb = js_str(career, &["blurb"]);
+            let banner = nonempty(js_str(career, &["banner"]));
+            let flag = js_bool(career, &["is_career_politician"]);
+            let mut spans = Vec::new();
+            for (i, s) in as_array(career.get("spans"))
+                .into_iter()
+                .take(MAX_CAREER_SPANS)
+                .enumerate()
+            {
+                let label = js_str(&s, &["label"]);
+                if label.is_empty() {
+                    continue;
+                }
+                spans.push(PackedCareerSpan {
+                    id: format!("k{i}"),
+                    category: js_str(&s, &["category"]),
+                    label: truncate_chars(&label, 120),
+                    start_year: value_i32(s.get("start_year")),
+                    end_year: value_i32(s.get("end_year")),
+                });
+            }
+            if !blurb.is_empty() || !spans.is_empty() {
+                ctx.career = Some(PackedCareer {
+                    blurb: truncate_chars(&blurb, 280),
+                    is_career_politician: flag,
+                    banner,
+                    spans,
+                });
+            }
+        }
+    }
+
+    let holdings = as_array(dossier.and_then(|d| d.get("holdings")));
+    for (i, h) in holdings.into_iter().take(MAX_HOLDINGS).enumerate() {
+        let description = js_str(&h, &["description"]);
+        if description.is_empty() {
+            continue;
+        }
+        ctx.holdings.push(PackedHolding {
+            id: format!("h{i}"),
+            kind: js_str(&h, &["kind"]),
+            description: truncate_chars(&description, 160),
+            amount: nonempty(js_str(&h, &["amount_display", "amount"])),
+        });
+    }
+
+    let affs = as_array(enrich.get("affiliations"));
+    for (i, a) in affs.into_iter().take(MAX_AFFILIATIONS).enumerate() {
+        let party = js_str(&a, &["party"]);
+        let role = js_str(&a, &["role"]);
+        if party.is_empty() && role.is_empty() {
+            continue;
+        }
+        ctx.affiliations.push(PackedAffiliation {
+            id: format!("a{i}"),
+            party,
+            role,
+            start: nonempty(js_str(&a, &["start"])),
+            end: nonempty(js_str(&a, &["end"])),
+        });
+    }
+
+    if let Some(fam) = dossier.and_then(|d| d.get("family_summary")) {
+        let disclosed = js_bool(fam, &["disclosed"]);
+        let display = js_str(fam, &["display"]);
+        if disclosed && !display.is_empty() {
+            ctx.family_summary = Some(truncate_chars(&display, 200));
+        }
+    }
+
+    let contrasts = as_array(scrutiny.and_then(|s| s.get("contrasts")));
+    for (i, c) in contrasts.into_iter().take(MAX_CONTRASTS).enumerate() {
+        let claim = js_str(&c, &["claim_text", "claim", "text"]);
+        if claim.is_empty() {
+            continue;
+        }
+        let matches = as_array(c.get("matches"));
+        ctx.contrasts.push(PackedContrast {
+            id: format!("x{i}"),
+            claim: truncate_chars(&claim, 240),
+            note: nonempty(js_str(&c, &["note", "llm_note"])),
+            topic: nonempty(js_str(&c, &["topic"])),
+            match_count: matches.len() as u32,
+        });
+    }
+
+    let records = as_array(scrutiny.and_then(|s| s.get("records")));
+    for (i, r) in records.into_iter().take(MAX_RECORDS).enumerate() {
+        let title = js_str(&r, &["title"]);
+        if title.is_empty() {
+            continue;
+        }
+        ctx.records.push(PackedRecord {
+            id: format!("r{i}"),
+            kind: js_str(&r, &["kind"]),
+            title: truncate_chars(&title, 160),
+            detail: nonempty(js_str(&r, &["detail"])),
+            status: nonempty(js_str(&r, &["status"])),
+            source: nonempty(js_str(&r, &["source"])),
+        });
+    }
+
     let packed_json = serde_json::to_string(&ctx).unwrap_or_default();
     ctx.hash = fingerprint(&packed_json);
     Some(ctx)
@@ -918,10 +1150,11 @@ fn system_prompt(kind: &str) -> String {
         "You write a voter-facing verdict card for one ballot {kind}.\n\
 Score only the locked rubric axes provided. Unsigned axes are 0-100. \
 Signed axes ({signed}) are -100 to +100.\n\
-Every scored axis needs at least one cite: a packed cite id (e0, v3, n1, …) or an https URL you actually retrieved.\n\
+Every scored axis needs at least one cite: a packed cite id (e0, v3, n1, k0, h0, a0, x0, r0, fam, …) or an https URL you actually retrieved.\n\
 If you cannot cite, set score to null.\n\
 Give an overall verdict and per-axis verdict lines. Be direct.\n\
-If voter_profile is present (axis id → 1-5 Likert: 1 strongly disagree, 5 strongly agree; some axes use custom poles), write the overall headline and verdict relative to that voter's likes and dislikes. Extra entries may include a voter-supplied label and definition — treat those as issues they added; do not add them as scored rubric axes. Axis scores stay alignment (how much the subject is that thing) — do not invert numbers; the client remaps fit.\n\
+If voter_profile is present, each entry has id, likert (1-5), label, definition, low_label, and high_label. Likert 1 = that axis's low pole, 5 = that axis's high pole. Write the overall headline and verdict relative to that voter's likes and dislikes. Extra entries (not on the locked rubric) are voter-supplied issues — do not add them as scored rubric axes. Axis scores stay alignment (how much the subject is that thing) — do not invert numbers; the client remaps fit.\n\
+Packed filings and live search are both evidence; cite either. Do not invent. If they conflict, say so.\n\
 Do not invent family, citizenship, assets, sexual orientation, or quotations.\n\
 News and X posts are reported-by, trust news. Endorsements found via search are trust news, not filing.\n\
 Return one JSON object (no markdown). Types: headline string; overall object; \
@@ -935,7 +1168,7 @@ cites may use packed id or url. tab is one of dossier,scrutiny,votes,finance,per
     )
 }
 
-fn user_prompt(ctx: &PackedContext) -> String {
+fn user_prompt(ctx: &PackedContext, with_search: bool) -> String {
     let compact = json!({
         "kind": ctx.kind,
         "name": ctx.name,
@@ -959,11 +1192,19 @@ fn user_prompt(ctx: &PackedContext) -> String {
         "donors": ctx.donors,
         "finance": ctx.finance,
         "facts": ctx.facts,
+        "career": ctx.career,
+        "holdings": ctx.holdings,
+        "affiliations": ctx.affiliations,
+        "family_summary": ctx.family_summary,
+        "contrasts": ctx.contrasts,
+        "records": ctx.records,
     });
-    format!(
-        "Packed filings (cite ids e# n# c# v# m# d# f#). Search the live web and X for gaps.\n{}",
-        compact
-    )
+    let lead = if with_search {
+        "Packed filings (cite ids e# n# c# v# m# d# f# k# h# a# x# r# fam) and live web/X search are both evidence — cite either. If they conflict, say so. Do not invent."
+    } else {
+        "Preview pass: identity + voter profile meaning only. Likert 1 = low pole, 5 = high pole. Do not invent filings, votes, quotes, family, or assets. No live search in this pass."
+    };
+    format!("{lead}\n{compact}")
 }
 
 fn agent_tools(provider: &str, with_search: bool) -> Value {
@@ -997,7 +1238,7 @@ pub fn verdict_request_body(
     let body = json!({
         "model": model,
         "instructions": system_prompt(&ctx.kind),
-        "input": [{ "role": "user", "content": user_prompt(&ctx) }],
+        "input": [{ "role": "user", "content": user_prompt(&ctx, with_search) }],
         "tools": agent_tools(prov, with_search),
         "text": { "format": { "type": "json_object" } },
     });
@@ -1027,7 +1268,7 @@ pub fn verdict_chat_request_body(
         "response_format": { "type": "json_object" },
         "messages": [
             { "role": "system", "content": system_prompt(&ctx.kind) },
-            { "role": "user", "content": user_prompt(&ctx) }
+            { "role": "user", "content": user_prompt(&ctx, false) }
         ],
     });
     serde_json::to_string(&body).ok()
@@ -1819,6 +2060,80 @@ fn cite_index(ctx: &PackedContext) -> HashMap<String, VerdictCite> {
             },
         );
     }
+    if let Some(career) = &ctx.career {
+        for s in &career.spans {
+            map.insert(
+                s.id.clone(),
+                VerdictCite {
+                    kind: "tab".into(),
+                    url: None,
+                    tab: Some("dossier".into()),
+                    label: Some(truncate_chars(&s.label, 48)),
+                    trust: Some("reference".into()),
+                },
+            );
+        }
+    }
+    for h in &ctx.holdings {
+        map.insert(
+            h.id.clone(),
+            VerdictCite {
+                kind: "tab".into(),
+                url: None,
+                tab: Some("personal".into()),
+                label: Some(truncate_chars(&h.description, 48)),
+                trust: Some("filing".into()),
+            },
+        );
+    }
+    for a in &ctx.affiliations {
+        map.insert(
+            a.id.clone(),
+            VerdictCite {
+                kind: "tab".into(),
+                url: None,
+                tab: Some("party".into()),
+                label: Some(truncate_chars(&a.party, 48)),
+                trust: Some("filing".into()),
+            },
+        );
+    }
+    if ctx.family_summary.is_some() {
+        map.insert(
+            "fam".into(),
+            VerdictCite {
+                kind: "tab".into(),
+                url: None,
+                tab: Some("dossier".into()),
+                label: Some("Family".into()),
+                trust: Some("reference".into()),
+            },
+        );
+    }
+    for x in &ctx.contrasts {
+        map.insert(
+            x.id.clone(),
+            VerdictCite {
+                kind: "tab".into(),
+                url: None,
+                tab: Some("scrutiny".into()),
+                label: Some(truncate_chars(&x.claim, 48)),
+                trust: Some("campaign".into()),
+            },
+        );
+    }
+    for r in &ctx.records {
+        map.insert(
+            r.id.clone(),
+            VerdictCite {
+                kind: "tab".into(),
+                url: None,
+                tab: Some("scrutiny".into()),
+                label: Some(truncate_chars(&r.title, 48)),
+                trust: Some("official".into()),
+            },
+        );
+    }
     map
 }
 
@@ -2477,6 +2792,74 @@ mod tests {
         assert_eq!(row.likert, 5);
         assert_eq!(row.label.as_deref(), Some("School choice"));
         assert_eq!(row.definition.as_deref(), Some("Vouchers and ESA."));
+    }
+
+    #[test]
+    fn packer_includes_builtin_poles_and_custom_extra() {
+        let enrich = r#"{"voter_profile":{"abortion":1,"school_choice":5},"voter_profile_catalog":[{"id":"school_choice","label":"School choice","definition":"Vouchers and ESA.","low_label":"Oppose","high_label":"Support"}]}"#;
+        let ctx = pack_verdict_context(
+            r#"{"name":"Byron Donalds","party":"Republican","office":"U.S. House"}"#,
+            enrich,
+        )
+        .unwrap();
+        let abort = ctx
+            .voter_profile
+            .iter()
+            .find(|p| p.id == "abortion")
+            .unwrap();
+        assert_eq!(abort.likert, 1);
+        assert_eq!(abort.label.as_deref(), Some("Abortion"));
+        assert_eq!(abort.low_label.as_deref(), Some("Fewer abortions"));
+        assert_eq!(abort.high_label.as_deref(), Some("More access"));
+        let extra = ctx
+            .voter_profile
+            .iter()
+            .find(|p| p.id == "school_choice")
+            .unwrap();
+        assert_eq!(extra.low_label.as_deref(), Some("Oppose"));
+        assert_eq!(extra.high_label.as_deref(), Some("Support"));
+        let packed = serde_json::to_string(&ctx).unwrap();
+        let body = verdict_request_body("xai", "grok-4.6", &packed, true).unwrap();
+        assert!(body.contains("Fewer abortions"));
+        assert!(body.contains("School choice"));
+        assert!(body.contains("low pole"));
+        assert!(body.contains("web_search"));
+        let preview = verdict_request_body("xai", "grok-4.6", &packed, false).unwrap();
+        assert!(!preview.contains("web_search"));
+        assert!(preview.contains("Preview pass"));
+    }
+
+    #[test]
+    fn packer_includes_career_holdings_affiliations() {
+        let enrich = r#"{
+            "dossier":{
+                "career":{"blurb":"Half adult life in office.","is_career_politician":true,"banner":"Career politician","spans":[{"category":"political","label":"U.S. House","start_year":2021}]},
+                "holdings":[{"kind":"stock","description":"Apple Inc","amount_display":"$15,001–$50,000"}],
+                "family_summary":{"disclosed":true,"display":"Married to Eva · 4 children"},
+                "facts":[{"kind":"education","text":"Florida State University"}]
+            },
+            "affiliations":[{"party":"Republican","role":"U.S. Representative","start":"2021"}],
+            "scrutiny":{
+                "contrasts":[{"claim_text":"Secure the border","topic":"border","note":"Voted for HR2","matches":[{}]}],
+                "records":[{"kind":"bar","title":"Florida Bar — eligible","status":"eligible","source":"Florida Bar"}]
+            }
+        }"#;
+        let ctx = pack_verdict_context(
+            r#"{"name":"Byron Donalds","party":"Republican","office":"U.S. House"}"#,
+            enrich,
+        )
+        .unwrap();
+        let career = ctx.career.as_ref().unwrap();
+        assert!(career.is_career_politician);
+        assert_eq!(career.spans.len(), 1);
+        assert_eq!(career.spans[0].id, "k0");
+        assert_eq!(ctx.holdings.len(), 1);
+        assert_eq!(ctx.holdings[0].id, "h0");
+        assert_eq!(ctx.affiliations.len(), 1);
+        assert_eq!(ctx.family_summary.as_deref(), Some("Married to Eva · 4 children"));
+        assert_eq!(ctx.contrasts.len(), 1);
+        assert_eq!(ctx.records[0].kind, "bar");
+        assert!(ctx.facts.iter().any(|f| f.text.contains("Florida State")));
     }
 
     #[test]
