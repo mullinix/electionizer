@@ -1,0 +1,85 @@
+# GitHub Pages: WASM build + publish web/ (same product path as netlify.toml).
+# Build:  ./scripts/build-wasm.sh   (bootstraps wasm-pack when CI=true)
+# Publish: web/                    (client-only; no API keys in this workflow)
+#
+# Repo settings: Settings → Pages → Source = GitHub Actions
+# Project URL:   https://<owner>.github.io/electionizer/
+
+name: pages
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - "crates/**"
+      - "web/**"
+      - "static/**"
+      - "scripts/build-wasm.sh"
+      - "voter-profile-defaults.json"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache cargo
+        uses: Swatinem/rust-cache@v2
+
+      - name: Build WASM into web/pkg
+        # Actions sets CI=true; build-wasm.sh then installs wasm-pack (same as Netlify).
+        run: ./scripts/build-wasm.sh
+
+      - name: Prepare Pages tree
+        run: |
+          # web/app.css + web/theme.js are git symlinks into ../static/.
+          # Netlify follows them at publish; flatten so the artifact is self-contained.
+          find web -type l -print0 | while IFS= read -r -d '' link; do
+            cp -L "$link" "${link}.real"
+            mv "${link}.real" "$link"
+          done
+          # Jekyll would skip underscored paths; wasm-pack writes web/pkg/.
+          touch web/.nojekyll
+          test -f web/index.html
+          test -f web/app.css
+          test ! -L web/app.css
+          test -f web/pkg/electionizer_wasm_bg.wasm
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        # v3 tars hidden files (.nojekyll). v4+ excludes .[^.]* unless include-hidden-files.
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: web
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

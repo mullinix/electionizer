@@ -123,7 +123,8 @@ Ship `web/` including a built `web/pkg/` from `./scripts/build-wasm.sh`. No serv
 
 | Target | Notes |
 |--------|--------|
-| Pages / Netlify / CDN | Static only. `netlify.toml` runs `./scripts/build-wasm.sh` → publish `web/`. Federal + AZ/FL via default public Wisp. |
+| GitHub Pages | `.github/workflows/pages.yml` — same build as Netlify (`./scripts/build-wasm.sh` → `web/`). Settings → Pages → Source = **GitHub Actions**. |
+| Netlify / CDN | Static only. `netlify.toml` runs `./scripts/build-wasm.sh` → publish `web/`. Federal + AZ/FL via default public Wisp. |
 | VPS with Wisp | `./scripts/run-static.sh` or `wisp-python --static=web/`; users can switch Settings → This origin. |
 | Freenet | Bundle static assets only; no API secrets. FEC keys client-side. Default Wisp is a public third-party endpoint (users may override/clear). |
 
