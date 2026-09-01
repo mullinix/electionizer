@@ -95,6 +95,9 @@ impl OpenStatesClient {
                     image_url: m.image_url,
                     birth_year: m.birth_year,
                     career_spans: m.career_spans,
+                    bio_facts: m.bio_facts,
+                    wikidata: m.wikidata,
+                    wikipedia: m.wikipedia,
                 }));
             }
         }
@@ -141,6 +144,9 @@ impl OpenStatesClient {
                 image_url: m.image_url.clone(),
                 birth_year: m.birth_year,
                 career_spans: m.career_spans.clone(),
+                bio_facts: m.bio_facts.clone(),
+                wikidata: m.wikidata.clone(),
+                wikipedia: m.wikipedia.clone(),
             })
             .unwrap_or_else(|_| "null".into()),
             None => "null".into(),
@@ -425,6 +431,12 @@ struct CachedPerson {
     birth_year: Option<i32>,
     #[serde(default)]
     career_spans: Vec<electionizer_core::bio::CareerSpan>,
+    #[serde(default)]
+    bio_facts: Vec<electionizer_core::bio::BioFact>,
+    #[serde(default)]
+    wikidata: Option<String>,
+    #[serde(default)]
+    wikipedia: Option<String>,
 }
 
 fn people_results_len(body: &str) -> usize {
