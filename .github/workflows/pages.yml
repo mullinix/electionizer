@@ -4,6 +4,11 @@
 #
 # Repo settings: Settings → Pages → Source = GitHub Actions
 # Project URL:   https://<owner>.github.io/electionizer/
+#
+# deploy-pages polls until GitHub reports the site live. That waiter has an
+# internal ~10m cap and can timeout on first deploy, large WASM (~4MB), or a
+# slow updating_pages backend even after the deployment object is created.
+# The site usually becomes live shortly after; check the Pages URL directly.
 
 name: pages
 
@@ -33,6 +38,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -71,15 +77,28 @@ jobs:
         # v3 tars hidden files (.nojekyll). v4+ excludes .[^.]* unless include-hidden-files.
         uses: actions/upload-pages-artifact@v3
         with:
+          name: github-pages
           path: web
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
+        # Waiter may hit its ~10m hard limit; the Pages update can still succeed.
+        continue-on-error: true
         uses: actions/deploy-pages@v4
+
+      - name: Report Pages URL
+        if: always()
+        run: |
+          owner="${{ github.repository_owner }}"
+          repo="${{ github.event.repository.name }}"
+          echo "Expected live URL: https://${owner}.github.io/${repo}/"
+          echo "Deploy action page_url: ${{ steps.deployment.outputs.page_url }}"
+          echo "Status waiter may timeout on slow updating_pages; the site usually becomes live shortly after."
